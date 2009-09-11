@@ -5,8 +5,10 @@
 	import flash.display.LineScaleMode;
 	import flash.display.Shape;
 	import flash.display.Sprite;
+	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.geom.ColorTransform;
+	import flash.geom.Rectangle;
 	import flash.text.TextField;
 	import flash.text.TextFormat;
 	import flash.text.TextFormatAlign;
@@ -47,6 +49,8 @@
 		protected var _formatSelected:TextFormat;       // TextFormat when selected (used for colouring)
 		
 		protected var _text:TextField;					// Label TextField (left aligned)
+		
+		protected var _rect:Rectangle;					// Bounds of the button in the context of the stage
 		
 		protected var _selected:Boolean;				// If the button is selected (only used for wave selection)
 		protected var _selectable:Boolean;				// If the button is selectable (only used for wave selection)
@@ -126,7 +130,15 @@
 			
 			mouseChildren = false;
 			
-			addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			addEventListener(Event.ADDED_TO_STAGE, onAdded);
+		}
+		
+		private function onAdded(e:Event):void
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, onAdded)
+			stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			
+			_rect = getBounds(stage);
 		}
 		
 		//--------------------------------------------------------------------------
@@ -141,12 +153,15 @@
 		 */
 		private function onMouseDown(e:MouseEvent):void 
 		{
-			stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
-			
-			removeChildAt(0);
-			
-			addChildAt(_backDown, 0);
-			setFormat(_formatDown);
+			if (_rect.contains(stage.mouseX, stage.mouseY))
+			{
+				stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+				
+				removeChildAt(0);
+				
+				addChildAt(_backDown, 0);
+				setFormat(_formatDown);
+			}
 		}
 		
 		/**

@@ -7,7 +7,7 @@
     <movie path="bin\as3sfxr.swf" />
     <movie fps="25" />
     <movie width="640" />
-    <movie height="480" />
+    <movie height="520" />
     <movie version="10" />
     <movie background="#CFC7AD" />
   </output>
