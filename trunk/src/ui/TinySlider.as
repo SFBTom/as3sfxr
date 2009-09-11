@@ -8,6 +8,7 @@
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.geom.Rectangle;
 	import flash.text.AntiAliasType;
 	import flash.text.TextField;
 	import flash.text.TextFormat;
@@ -45,6 +46,9 @@
 		protected var _border:Shape;				// Border shape to cover the borders of the back and bar
 		
 		protected var _text:TextField;				// Label TextField positioned to the left of the slider (right aligned)
+		
+		protected var _rect:Rectangle;				// Bounds of the slider in the context of the stage
+		protected var _textRect:Rectangle;			// Bounds of the label in the context of the stage
 		
 		protected var _formatLight:TextFormat;		// Format for colouring the undimmed text (black)
 		protected var _formatDim:TextFormat;		// Format for colouring the dimmed text (gray)
@@ -100,11 +104,13 @@
 			_value = 0.0;
 			
 			mouseChildren = false;
-			addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			addEventListener(Event.ADDED_TO_STAGE, onAdded);
 			
 			_back = 	drawRect(0, 		0x807060);
 			_bar = 		drawRect(0xFFFFFF, 	0xF0C090);
 			_border = 	drawRect(0, 		0xFFFFFF, 0);
+			
+			_bar.scaleX = _plusMinus ? 0.5 : 0.0;
 			
 			if (plusMinus)
 			{
@@ -137,6 +143,20 @@
 			addChild(_border);
 		}
 		
+		/**
+		 * Once the slider is on the stage, the event listener can be set up and rectangles recorded
+		 * @param	e	Added to stage event
+		 */
+		private function onAdded(e:Event):void
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, onAdded)
+			stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			
+			_rect = _back.getBounds(stage);
+			
+			if (_text)  _textRect = _text.getBounds(stage);
+		}
+		
 		//--------------------------------------------------------------------------
 		//	
 		//  Mouse Methods
@@ -144,15 +164,22 @@
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Starts listening for mouse move and updates the value
+		 * Starts listening for mouse move and updates the value, or resets the value if you click on the text
 		 * @param	e	MouseEvent
 		 */
 		protected function onMouseDown(e:MouseEvent):void
 		{
-			updateValue();
-			
-			stage.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
-			stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+			if (_rect.contains(stage.mouseX, stage.mouseY))
+			{
+				updateValue();
+				
+				stage.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+				stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+			}
+			else if (_textRect && _textRect.contains(stage.mouseX, stage.mouseY))
+			{
+				value = 0.0;
+			}
 		}
 		
 		/**

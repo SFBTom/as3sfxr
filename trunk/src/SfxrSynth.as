@@ -788,6 +788,8 @@
 		 */
 		public function randomize():void
 		{
+			waveType = uint(Math.random() * 4);
+			
 			attackTime =  			pow(Math.random()*2-1, 4);
 			sustainTime =  			pow(Math.random()*2-1, 2);
 			sustainPunch =  		pow(Math.random()*0.8, 2);
@@ -858,7 +860,99 @@
 		
 		//--------------------------------------------------------------------------
 		//	
-		//  Settings Methods
+		//  Settings String Methods
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * Returns a string representation of the parameters for copy/paste sharing
+		 * @return	A comma-delimited list of parameter values
+		 */
+		public function getSettingsString():String
+		{
+			var string:String = String(waveType);
+			string += "," + to3DP(attackTime);
+			string += "," + to3DP(sustainTime);
+			string += "," + to3DP(sustainPunch);
+			string += "," + to3DP(decayTime);
+			string += "," + to3DP(startFrequency);
+			string += "," + to3DP(minFrequency);
+			string += "," + to3DP(slide);
+			string += "," + to3DP(deltaSlide);
+			string += "," + to3DP(vibratoDepth);
+			string += "," + to3DP(vibratoSpeed);
+			string += "," + to3DP(changeAmount);
+			string += "," + to3DP(changeSpeed);
+			string += "," + to3DP(squareDuty);
+			string += "," + to3DP(dutySweep);
+			string += "," + to3DP(repeatSpeed);
+			string += "," + to3DP(phaserOffset);
+			string += "," + to3DP(phaserSweep);
+			string += "," + to3DP(lpFilterCutoff);
+			string += "," + to3DP(lpFilterCutoffSweep);
+			string += "," + to3DP(lpFilterResonance);
+			string += "," + to3DP(hpFilterCutoff);
+			string += "," + to3DP(hpFilterCutoffSweep);
+			string += "," + to3DP(masterVolume);		
+			
+			return string;
+		}
+		
+		/**
+		 * Returns the number as a string to 3 decimal places
+		 * @param	value	Number to convert
+		 * @return			Number to 3dp as a string
+		 */
+		private function to3DP(value:Number):String
+		{
+			var string:String = String(value);
+			var split:Array = string.split(".");
+			if (split.length == 1) 	return string;
+			else 					return split[0] + "." + split[1].substr(0, 3);
+		}
+		
+		/**
+		 * Parses a settings string into the parameters
+		 * @param	string	Settings string to parse
+		 * @return			If the string successfully parsed
+		 */
+		public function setSettingsString(string:String):Boolean
+		{
+			var values:Array = string.split(",");
+			
+			if (values.length != 24) return false;
+			
+			waveType = 				uint(values[0]) || 0;
+			attackTime =  			Number(values[1]) || 0;
+			sustainTime =  			Number(values[2]) || 0;
+			sustainPunch =  		Number(values[3]) || 0;
+			decayTime =  			Number(values[4]) || 0;
+			startFrequency =  		Number(values[5]) || 0;
+			minFrequency =  		Number(values[6]) || 0;
+			slide =  				Number(values[7]) || 0;
+			deltaSlide =  			Number(values[8]) || 0;
+			vibratoDepth =  		Number(values[9]) || 0;
+			vibratoSpeed =  		Number(values[10]) || 0;
+			changeAmount =  		Number(values[11]) || 0;
+			changeSpeed =  			Number(values[12]) || 0;
+			squareDuty =  			Number(values[13]) || 0;
+			dutySweep =  			Number(values[14]) || 0;
+			repeatSpeed =  			Number(values[15]) || 0;
+			phaserOffset =  		Number(values[16]) || 0;
+			phaserSweep =  			Number(values[17]) || 0;
+			lpFilterCutoff =  		Number(values[18]) || 0;
+			lpFilterCutoffSweep =  	Number(values[19]) || 0;
+			lpFilterResonance =  	Number(values[20]) || 0;
+			hpFilterCutoff =  		Number(values[21]) || 0;
+			hpFilterCutoffSweep =  	Number(values[22]) || 0;
+			masterVolume = 			Number(values[23]) || 0;
+			
+			return true;
+		}   
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  Settings File Methods
 		//
 		//--------------------------------------------------------------------------
 		

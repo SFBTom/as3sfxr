@@ -9,13 +9,21 @@
 	import flash.display.JointStyle;
 	import flash.display.LineScaleMode;
 	import flash.display.Sprite;
+	import flash.events.ContextMenuEvent;
 	import flash.events.Event;
+	import flash.events.KeyboardEvent;
+	import flash.events.MouseEvent;
+	import flash.events.TextEvent;
 	import flash.net.FileFilter;
 	import flash.net.FileReference;
 	import flash.text.Font;
 	import flash.text.TextField;
+	import flash.text.TextFieldType;
 	import flash.text.TextFormat;
 	import flash.text.TextFormatAlign;
+	import flash.ui.ContextMenu;
+	import flash.ui.Mouse;
+	import flash.ui.MouseCursor;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Endian;
@@ -41,7 +49,7 @@
 	 * 
 	 * @author Thomas Vian
 	 */
-	[SWF(width='640', height='480', backgroundColor='#C0B090', frameRate='25')]
+	[SWF(width='640', height='485', backgroundColor='#C0B090', frameRate='25')]
 	public class SfxrApp extends Sprite
 	{
 		//--------------------------------------------------------------------------
@@ -53,7 +61,7 @@
 		private var Amiga4Ever:Class;				// Pixel font, original was in a tga file
 		
 		[Embed(source = "assets/logo.png")]
-		private var Logo:Class;
+		private var Logo:Class;						// SFB09 logo, for the bottom left corner
 		
 		private var _synth:SfxrSynth;				// synthesizer instance
 		
@@ -61,6 +69,8 @@
 		private var _sliderLookup:Object;			// Look up for sliders using a property name key
 		private var _waveformLookup:Array;			// Look up for waveform buttons
 		private var _squareLookup:Array;			// Look up for sliders controlling a square wave property
+		
+		private var _copyPaste:TextField;			// Input TextField for the settings
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -84,28 +94,13 @@
 			drawButtons();
 			drawSliders();
 			drawGraphics();
+			drawCopyPaste();
 			
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 		}
 		
-		//--------------------------------------------------------------------------
-		//	
-		//  Interface Methods
-		//
-		//--------------------------------------------------------------------------
-		
-		/**
-		 * Updates the interface to reflect the synthesizer
-		 */
-		private function updateInterface():void
-		{
-			for(var prop:String in _sliderLookup)
-			{
-				_sliderLookup[prop].value = _synth[prop];
-			}
-			
-			selectedSwitch(_waveformLookup[_synth.waveType]);
-		}
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -126,8 +121,8 @@
 			addButton("HIT/HURT", 		clickHitHurt, 		4, 152);
 			addButton("JUMP", 			clickJump, 			4, 182);
 			addButton("BLIP/SELECT", 	clickBlipSelect, 	4, 212);
-			addButton("MUTATE", 		clickMutate, 		4, 378);
-			addButton("RANDOMIZE", 		clickRandomize, 	4, 408, 2);
+			addButton("MUTATE", 		clickMutate, 		4, 384);
+			addButton("RANDOMIZE", 		clickRandomize, 	4, 414, 2);
 			
 			// Waveform
 			addButton("SQUAREWAVE", 	clickSquarewave, 	130, 28, 1, true);
@@ -164,6 +159,14 @@
 			if(selectable) _waveformLookup.push(button);
 		}
 		
+		/**
+		 * Updates the buttons to reflect the synthesizer
+		 */
+		private function updateButtons():void
+		{
+			selectedSwitch(_waveformLookup[_synth.waveType]);
+		}
+		
 		//--------------------------------------------------------------------------
 		//	
 		//  Generator Methods
@@ -177,7 +180,9 @@
 		private function clickPickupCoin(button:TinyButton):void
 		{
 			_synth.generatePickupCoin();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -188,7 +193,9 @@
 		private function clickLaserShoot(button:TinyButton):void
 		{
 			_synth.generateLaserShoot();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -199,7 +206,9 @@
 		private function clickExplosion(button:TinyButton):void
 		{
 			_synth.generateExplosion();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -210,7 +219,9 @@
 		private function clickPowerup(button:TinyButton):void
 		{
 			_synth.generatePowerup();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -221,7 +232,9 @@
 		private function clickHitHurt(button:TinyButton):void
 		{
 			_synth.generateHitHurt();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -232,7 +245,9 @@
 		private function clickJump(button:TinyButton):void
 		{
 			_synth.generateJump();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -243,7 +258,9 @@
 		private function clickBlipSelect(button:TinyButton):void
 		{
 			_synth.generateBlipSelect();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -254,7 +271,9 @@
 		private function clickMutate(button:TinyButton):void
 		{
 			_synth.mutate();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}
 		
@@ -265,7 +284,9 @@
 		private function clickRandomize(button:TinyButton):void
 		{
 			_synth.randomize();
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 			_synth.play();
 		}          
 		
@@ -283,6 +304,7 @@
 		{
 			_synth.waveType = 0;
 			selectedSwitch(button);
+			updateCopyPaste();
 		}
 		
 		/**
@@ -293,6 +315,7 @@
 		{
 			_synth.waveType = 1;
 			selectedSwitch(button);
+			updateCopyPaste();
 		}
 		
 		/**
@@ -303,6 +326,7 @@
 		{
 			_synth.waveType = 2;
 			selectedSwitch(button);
+			updateCopyPaste();
 		}
 		
 		/**
@@ -313,6 +337,7 @@
 		{
 			_synth.waveType = 3;
 			selectedSwitch(button);
+			updateCopyPaste();
 		}
 		
 		/**
@@ -382,7 +407,9 @@
 			file.removeEventListener(Event.COMPLETE, onLoadSettings);
 			
 			_synth.setSettingsFile(file.data);
-			updateInterface();
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
 		}
 		
 		/**
@@ -496,6 +523,85 @@
 		private function onSliderChange(slider:TinySlider):void
 		{
 			_synth[_propLookup[slider]] = slider.value;
+			
+			updateCopyPaste();
+		}
+		
+		/**
+		 * Updates the sliders to reflect the synthesizer
+		 */
+		private function updateSliders():void
+		{
+			for(var prop:String in _sliderLookup)
+			{
+				_sliderLookup[prop].value = _synth[prop];
+			}
+		}
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  Copy Paste Methods
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * Adds a TextField over the whole app. 
+		 * Allows for right-click copy/paste, as well as ctrl-c/ctrl-v
+		 */
+		private function drawCopyPaste():void
+		{
+			_copyPaste = new TextField();
+			_copyPaste.addEventListener(TextEvent.TEXT_INPUT, updateFromCopyPaste);
+			_copyPaste.addEventListener(KeyboardEvent.KEY_DOWN, updateCopyPaste);
+			_copyPaste.addEventListener(KeyboardEvent.KEY_UP, updateCopyPaste);
+			_copyPaste.defaultTextFormat = new TextFormat("Amiga4Ever", 8, 0);
+			_copyPaste.wordWrap = false;
+			_copyPaste.multiline = false;
+			_copyPaste.type = TextFieldType.INPUT;
+			_copyPaste.embedFonts = true;
+			_copyPaste.width = 640;
+			_copyPaste.height = 580;
+			_copyPaste.x = 0;
+			_copyPaste.y = -20;
+			addChild(_copyPaste);
+			
+			_copyPaste.contextMenu = new ContextMenu();
+			_copyPaste.contextMenu.addEventListener(ContextMenuEvent.MENU_SELECT, updateCopyPaste);
+			
+			Mouse.cursor = MouseCursor.ARROW;
+		}
+		
+		/**
+		 * Updates the contents of the textfield to a representation of the settings
+		 * @param	e	Optional event
+		 */
+		private function updateCopyPaste(e:Event = null):void
+		{
+			_copyPaste.text = _synth.getSettingsString();
+			
+			_copyPaste.setSelection(0, _copyPaste.text.length);
+			stage.focus = _copyPaste;
+		}
+		
+		/**
+		 * When the textfield is pasted into, and the new info parses, updates the settings
+		 * @param	e	Text input event
+		 */
+		private function updateFromCopyPaste(e:TextEvent):void
+		{
+			if (!_synth.setSettingsString(e.text)) 
+			{
+				_copyPaste.setSelection(0, _copyPaste.text.length);
+				stage.focus = _copyPaste;
+				
+				_copyPaste.text = _synth.getSettingsString();
+			}
+			
+			_copyPaste.setSelection(0, _copyPaste.text.length);
+			stage.focus = _copyPaste;
+			
+			updateSliders();
+			updateButtons();
 		}
 		
 		//--------------------------------------------------------------------------
@@ -512,7 +618,7 @@
 			var lines:Vector.<IGraphicsData> = new Vector.<IGraphicsData>();
 			lines.push(new GraphicsStroke(2, false, LineScaleMode.NORMAL, CapsStyle.NONE, JointStyle.MITER, 3, new GraphicsSolidFill(0)));
 			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,2,2]), 
-										Vector.<Number>([	114,0, 		114,480,
+										Vector.<Number>([	114,0, 		114,490,
 															160,66,		460,66,
 															160,138,	460,138,
 															160,246,	460,246,
@@ -520,12 +626,12 @@
 															160,318,	460,318,
 															160,336,	460,336,
 															160,372,	460,372,
-															160,462,	460,462,
+															160, 462,	460, 462,
 															590,182, 618,182, 618,388, 590,388])));
 			lines.push(new GraphicsStroke(1, false, LineScaleMode.NORMAL, CapsStyle.NONE, JointStyle.MITER, 3, new GraphicsSolidFill(0)));
-			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2]), 
-										Vector.<Number>([	160,65, 	160,463,
-															460,65,		460,463])));
+			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2]), 
+										Vector.<Number>([	160, 65, 	160, 463,
+															460, 65,	460, 463])));
 			
 			graphics.drawGraphicsData(lines);
 			
@@ -537,9 +643,11 @@
 			addLabel("GENERATOR", 6, 8, 0x504030);
 			addLabel("MANUAL SETTINGS", 122, 8, 0x504030);
 			
+			addLabel("AS3SFXR | THOMAS VIAN 2009 | BASED ON SFXR BY TOMAS PETTERSSON", 124, 468, 0x877569, 500);
+			
 			var logo:DisplayObject = new Logo();
 			logo.x = 4;
-			logo.y = 436;
+			logo.y = 444;
 			addChild(logo);
 		}
 		
@@ -550,15 +658,15 @@
 		 * @param	y			Y position of the label
 		 * @param	colour		Colour of the text
 		 */
-		private function addLabel(label:String, x:Number, y:Number, colour:uint):void
+		private function addLabel(label:String, x:Number, y:Number, colour:uint, width:Number = 200):void
 		{
 			var txt:TextField = new TextField();
-			txt.defaultTextFormat = new TextFormat("Amiga4Ever", 8, colour, false, false, false, null, null, TextFormatAlign.LEFT);
+			txt.defaultTextFormat = new TextFormat("Amiga4Ever", 8, colour);
 			txt.selectable = false;
 			txt.embedFonts = true;
 			txt.text = label;
-			txt.width = 200;
-			txt.height = 10;
+			txt.width = width;
+			txt.height = 15;
 			txt.x = x;
 			txt.y = y;
 			addChild(txt);
