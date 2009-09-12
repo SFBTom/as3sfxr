@@ -91,9 +91,9 @@
 			_waveformLookup = [];
 			_squareLookup = [];
 			
+			drawGraphics();
 			drawButtons();
 			drawSliders();
-			drawGraphics();
 			drawCopyPaste();
 			
 			updateSliders();
@@ -643,7 +643,7 @@
 			addLabel("GENERATOR", 6, 8, 0x504030);
 			addLabel("MANUAL SETTINGS", 122, 8, 0x504030);
 			
-			addLabel("AS3SFXR | THOMAS VIAN 2009 | BASED ON SFXR BY TOMAS PETTERSSON", 124, 468, 0x877569, 500);
+			addLabel("BASED ON SFXR BY TOMAS PETTERSSON", 176, 468, 0x877569, 500);
 			
 			var logo:DisplayObject = new Logo();
 			logo.x = 4;
