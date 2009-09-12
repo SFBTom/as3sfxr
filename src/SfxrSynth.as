@@ -910,7 +910,13 @@
 			var string:String = String(value);
 			var split:Array = string.split(".");
 			if (split.length == 1) 	return string;
-			else 					return split[0] + "." + split[1].substr(0, 3);
+			else 					
+			{
+				var out:String = split[0] + "." + split[1].substr(0, 3);
+				while (out.substr(out.length - 1, 1) == "0") out = out.substr(0, out.length - 1);
+				
+				return out;
+			}
 		}
 		
 		/**
