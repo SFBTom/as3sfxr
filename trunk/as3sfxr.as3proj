@@ -7,9 +7,9 @@
     <movie path="bin\as3sfxr.swf" />
     <movie fps="25" />
     <movie width="640" />
-    <movie height="520" />
+    <movie height="485" />
     <movie version="10" />
-    <movie background="#CFC7AD" />
+    <movie background="#C0B090" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>

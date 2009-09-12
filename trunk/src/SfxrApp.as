@@ -14,8 +14,11 @@
 	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
 	import flash.events.TextEvent;
+	import flash.geom.Rectangle;
 	import flash.net.FileFilter;
 	import flash.net.FileReference;
+	import flash.net.navigateToURL;
+	import flash.net.URLRequest;
 	import flash.text.Font;
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
@@ -49,7 +52,7 @@
 	 * 
 	 * @author Thomas Vian
 	 */
-	[SWF(width='640', height='485', backgroundColor='#C0B090', frameRate='25')]
+	[SWF(width='640', height='480', backgroundColor='#C0B090', frameRate='25')]
 	public class SfxrApp extends Sprite
 	{
 		//--------------------------------------------------------------------------
@@ -71,6 +74,9 @@
 		private var _squareLookup:Array;			// Look up for sliders controlling a square wave property
 		
 		private var _copyPaste:TextField;			// Input TextField for the settings
+		
+		private var _logoRect:Rectangle;
+		private var _sfxrRect:Rectangle;
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -618,7 +624,7 @@
 			var lines:Vector.<IGraphicsData> = new Vector.<IGraphicsData>();
 			lines.push(new GraphicsStroke(2, false, LineScaleMode.NORMAL, CapsStyle.NONE, JointStyle.MITER, 3, new GraphicsSolidFill(0)));
 			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,2,2]), 
-										Vector.<Number>([	114,0, 		114,490,
+										Vector.<Number>([	114,0, 		114,480,
 															160,66,		460,66,
 															160,138,	460,138,
 															160,246,	460,246,
@@ -638,17 +644,34 @@
 			graphics.lineStyle(2, 0xFF0000, 1, true, LineScaleMode.NORMAL, CapsStyle.SQUARE, JointStyle.MITER);
 			graphics.drawRect(549.5, 177.5, 43, 10);
 			
+			addLabel("COPY/PASTE SETTINGS", 470, 75, 0x877569, 500);
+			addLabel("TO SHARE SOUNDS", 484, 89, 0x877569, 500);
+			addLabel("BASED ON SFXR BY", 480, 115, 0x877569, 500);
+			addLabel("TOMAS PETTERSSON", 480, 129, 0x877569, 500);
+			
 			addLabel("VOLUME", 516, 162, 0);
 			
 			addLabel("GENERATOR", 6, 8, 0x504030);
 			addLabel("MANUAL SETTINGS", 122, 8, 0x504030);
 			
-			addLabel("BASED ON SFXR BY TOMAS PETTERSSON", 176, 468, 0x877569, 500);
-			
 			var logo:DisplayObject = new Logo();
 			logo.x = 4;
-			logo.y = 444;
+			logo.y = 439;
 			addChild(logo);
+			
+			_logoRect = logo.getBounds(stage);
+			_sfxrRect = new Rectangle(480, 115, 100, 30);
+			stage.addEventListener(MouseEvent.MOUSE_DOWN, onClick);
+		}
+		
+		/**
+		 * Handles clicking either
+		 * @param	e
+		 */
+		private function onClick(e:MouseEvent):void
+		{
+			if (_logoRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.superflashbros.net"));
+			if (_sfxrRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.ludumdare.com/compo/2007/12/13/sfxr-sound-effects-for-all/"));
 		}
 		
 		/**
