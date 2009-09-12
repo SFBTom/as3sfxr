@@ -905,6 +905,8 @@
 		 */
 		private function to3DP(value:Number):String
 		{
+			if (value < 0.01 && value > -0.01) return "";
+			
 			var string:String = String(value);
 			var split:Array = string.split(".");
 			if (split.length == 1) 	return string;
