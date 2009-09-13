@@ -309,6 +309,7 @@
 		private function clickSquarewave(button:TinyButton):void
 		{
 			_synth.waveType = 0;
+			_synth.invalidate();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -320,6 +321,7 @@
 		private function clickSawtooth(button:TinyButton):void
 		{
 			_synth.waveType = 1;
+			_synth.invalidate();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -331,6 +333,7 @@
 		private function clickSinewave(button:TinyButton):void
 		{
 			_synth.waveType = 2;
+			_synth.invalidate();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -342,6 +345,7 @@
 		private function clickNoise(button:TinyButton):void
 		{
 			_synth.waveType = 3;
+			_synth.invalidate();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -529,6 +533,8 @@
 		private function onSliderChange(slider:TinySlider):void
 		{
 			_synth[_propLookup[slider]] = slider.value;
+			
+			_synth.invalidate();
 			
 			updateCopyPaste();
 		}
