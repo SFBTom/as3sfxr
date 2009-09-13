@@ -32,59 +32,59 @@
 		//
 		//--------------------------------------------------------------------------
 		
-		public var waveType				:int = 		0;		// Shape of the wave (square, saw, sin or noise)
+		public var waveType				:uint = 	0;		// Shape of the wave (0:square, 1:saw, 2:sin or 3:noise)
 		
-		public var sampleRate			:int = 		44100;	// Samples per second - only used for .wav export
+		public var sampleRate			:uint = 	44100;	// Samples per second - only used for .wav export
 		
-		public var bitDepth				:int = 		16;		// Bits per sample - only used for .wav export
+		public var bitDepth				:uint = 	16;		// Bits per sample - only used for .wav export
 		
-		public var masterVolume			:Number = 	0.5;	// Overall volume of the sound
+		public var masterVolume			:Number = 	0.5;	// Overall volume of the sound (0 to 1)
 		
-		public var attackTime			:Number =	0.0;	// Length of the volume envelope attack
-		public var sustainTime			:Number = 	0.0;	// Length of the volume envelope sustain
-		public var sustainPunch			:Number = 	0.0;	// Tilts the sustain envelope for more 'pop'
-		public var decayTime			:Number = 	0.0;	// Length of the volume envelope decay (yes, I know it's called release)
+		public var attackTime			:Number =	0.0;	// Length of the volume envelope attack (0 to 1)
+		public var sustainTime			:Number = 	0.0;	// Length of the volume envelope sustain (0 to 1)
+		public var sustainPunch			:Number = 	0.0;	// Tilts the sustain envelope for more 'pop' (0 to 1)
+		public var decayTime			:Number = 	0.0;	// Length of the volume envelope decay (yes, I know it's called release) (0 to 1)
 		
-		public var startFrequency		:Number = 	0.0;	// Base note of the sound
-		public var minFrequency			:Number = 	0.0;	// If sliding, the sound will stop at this frequency, to prevent really low notes
+		public var startFrequency		:Number = 	0.0;	// Base note of the sound (0 to 1)
+		public var minFrequency			:Number = 	0.0;	// If sliding, the sound will stop at this frequency, to prevent really low notes (0 to 1)
 		
-		public var slide				:Number = 	0.0;	// Slides the note up or down
-		public var deltaSlide			:Number = 	0.0;	// Accelerates the slide
+		public var slide				:Number = 	0.0;	// Slides the note up or down (-1 to 1)
+		public var deltaSlide			:Number = 	0.0;	// Accelerates the slide (-1 to 1)
 		
-		public var vibratoDepth			:Number = 	0.0;	// Strength of the vibrato effect
-		public var vibratoSpeed			:Number = 	0.0;	// Speed of the vibrato effect (i.e. frequency)
+		public var vibratoDepth			:Number = 	0.0;	// Strength of the vibrato effect (0 to 1)
+		public var vibratoSpeed			:Number = 	0.0;	// Speed of the vibrato effect (i.e. frequency) (0 to 1)
 		
-		public var changeAmount			:Number = 	0.0;	// Shift in note, either up or down
-		public var changeSpeed			:Number = 	0.0;	// How fast the note shift happens (only happens once)
+		public var changeAmount			:Number = 	0.0;	// Shift in note, either up or down (-1 to 1)
+		public var changeSpeed			:Number = 	0.0;	// How fast the note shift happens (only happens once) (0 to 1)
 		
-		public var squareDuty			:Number = 	0.0;	// Controls the ratio between the up and down states of the square wave, changing the tibre
-		public var dutySweep			:Number = 	0.0;	// Sweeps the duty up or down
+		public var squareDuty			:Number = 	0.0;	// Controls the ratio between the up and down states of the square wave, changing the tibre (0 to 1)
+		public var dutySweep			:Number = 	0.0;	// Sweeps the duty up or down (-1 to 1)
 		
-		public var repeatSpeed			:Number = 	0.0;	// Speed of the note repeating - certain variables are reset each time
+		public var repeatSpeed			:Number = 	0.0;	// Speed of the note repeating - certain variables are reset each time (0 to 1)
 		
-		public var phaserOffset			:Number = 	0.0;	// Offsets a second copy of the wave by a small phase, changing the tibre
-		public var phaserSweep			:Number = 	0.0;	// Sweeps the phase up or down
+		public var phaserOffset			:Number = 	0.0;	// Offsets a second copy of the wave by a small phase, changing the tibre (-1 to 1)
+		public var phaserSweep			:Number = 	0.0;	// Sweeps the phase up or down (-1 to 1)
 		
-		public var lpFilterCutoff		:Number = 	0.0;	// Frequency at which the low-pass filter starts attenuating higher frequencies
-		public var lpFilterCutoffSweep	:Number = 	0.0;	// Sweeps the low-pass cutoff up or down
-		public var lpFilterResonance	:Number = 	0.0;	// Changes the attenuation rate for the low-pass filter, changing the timbre
+		public var lpFilterCutoff		:Number = 	0.0;	// Frequency at which the low-pass filter starts attenuating higher frequencies (0 to 1)
+		public var lpFilterCutoffSweep	:Number = 	0.0;	// Sweeps the low-pass cutoff up or down (-1 to 1)
+		public var lpFilterResonance	:Number = 	0.0;	// Changes the attenuation rate for the low-pass filter, changing the timbre (0 to 1)
 		
-		public var hpFilterCutoff		:Number = 	0.0;	// Frequency at which the high-pass filter starts attenuating lower frequencies
-		public var hpFilterCutoffSweep	:Number = 	0.0;	// Sweeps the high-pass cutoff up or down
+		public var hpFilterCutoff		:Number = 	0.0;	// Frequency at which the high-pass filter starts attenuating lower frequencies (0 to 1)
+		public var hpFilterCutoffSweep	:Number = 	0.0;	// Sweeps the high-pass cutoff up or down (-1 to 1)
 		
 		//--------------------------------------------------------------------------
 		//
-		//  Preview Variables
+		//  Sound Variables
 		//
 		//--------------------------------------------------------------------------
 		
-		private var _sound:Sound;							// Sound instance used to play the preview
+		private var _sound:Sound;							// Sound instance used to play the sound
 		private var _channel:SoundChannel;					// SoundChannel instance of playing Sound
 		
-		private var _preview:ByteArray;						// Full preview wave, read out in chuncks by the onSampleData method
-		private var _previewPos:uint;						// Current position in the preview
-		private var _previewLength:uint;					// Number of bytes in the preview wave
-		private var _previewSamples:uint;					// Number of bytes to write to the soundcard
+		private var _waveData:ByteArray;					// Full wave, read out in chuncks by the onSampleData method
+		private var _waveDataPos:uint;						// Current position in the waveData
+		private var _waveDataLength:uint;					// Number of bytes in the waveData
+		private var _waveDataBytes:uint;					// Number of bytes to write to the soundcard
 		
 		//--------------------------------------------------------------------------
 		//
@@ -171,101 +171,46 @@
 		
 		//--------------------------------------------------------------------------
 		//	
-		//  Output Methods
+		//  Sound Methods
 		//
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Plays the preview of the wave, using the FP10 Sound API
+		 * Plays the waveData of the wave, using the FP10 Sound API
 		 */
 		public function play():void
 		{
-			reset(true);
-			
 			if(_channel) _channel.stop();
 			
-			_preview = new ByteArray();
-			synthWave(_preview, true);
+			if (!_waveData) synthesize();
 			
-			_previewPos = 0;
-			_previewLength = _preview.length;
-			_previewSamples = 24576;
-			
-			if(_previewLength < _previewSamples)
-			{
-				// If the sound is smaller than the buffer length, add silence to allow it to play
-				for(var i:uint = 0, l:uint = _previewSamples - _previewLength; i < l; i++) _preview.writeFloat(0.0);
-				
-				_previewLength = _previewSamples;
-			}
+			_waveData.position = 0;
+			_waveDataPos = 0;
+			_waveDataBytes = 24576;
 			
 			_channel = _sound.play();
 		}
 		
 		/**
-		 * Reads out chuncks of data from the preview wave and writes it to the soundcard
+		 * Reads out chuncks of data from the waveData wave and writes it to the soundcard
 		 * @param	e	SampleDataEvent to write data to
 		 */
 		private function onSampleData(e:SampleDataEvent):void
 		{
-			if(_previewPos + _previewSamples > _previewLength) _previewSamples = _previewLength - _previewPos;
+			if(_waveDataPos + _waveDataBytes > _waveDataLength) _waveDataBytes = _waveDataLength - _waveDataPos;
 			
-			e.data.writeBytes(_preview, _previewPos, _previewSamples);
+			if(_waveDataBytes > 0) e.data.writeBytes(_waveData, _waveDataPos, _waveDataBytes);
 			
-			_previewPos += _previewSamples;
+			_waveDataPos += _waveDataBytes;
 		}
 		
 		/**
-		 * Returns a ByteArray of the wave in the form of a .wav file, ready to be saved out
-		 * @return	Wave in a .wav file
+		 * Deletes the current wave data, forcing it to be synthesized again on the next play
 		 */
-		public function getWavFile():ByteArray
+		public function invalidate():void
 		{
-			reset(true);
-			
+			_waveData = null;
 			if(_channel) _channel.stop();
-			
-			var soundLength:uint = _envelopeFullLength;
-			if (bitDepth == 16) soundLength *= 2;
-			if (sampleRate == 22050) soundLength /= 2;
-			
-			var filesize:int = 36 + soundLength;
-			var blockAlign:int = bitDepth / 8;
-			var bytesPerSec:int = sampleRate * blockAlign;
-			
-			var wav:ByteArray = new ByteArray();
-			
-			// Header
-			wav.endian = Endian.BIG_ENDIAN;
-			wav.writeUnsignedInt(0x52494646);		// Chunk ID "RIFF"
-			wav.endian = Endian.LITTLE_ENDIAN;
-			wav.writeUnsignedInt(filesize);			// Chunck Data Size
-			wav.endian = Endian.BIG_ENDIAN;
-			wav.writeUnsignedInt(0x57415645);		// RIFF Type "WAVE"
-			
-			// Format Chunk
-			wav.endian = Endian.BIG_ENDIAN;
-			wav.writeUnsignedInt(0x666D7420);		// Chunk ID "fmt "
-			wav.endian = Endian.LITTLE_ENDIAN;
-			wav.writeUnsignedInt(16);				// Chunk Data Size
-			wav.writeShort(1);						// Compression Code PCM
-			wav.writeShort(1);						// Number of channels
-			wav.writeUnsignedInt(sampleRate);		// Sample rate
-			wav.writeUnsignedInt(bytesPerSec);		// Average bytes per second
-			wav.writeShort(blockAlign);				// Block align
-			wav.writeShort(bitDepth);				// Significant bits per sample
-			
-			// Data Chunk
-			wav.endian = Endian.BIG_ENDIAN;
-			wav.writeUnsignedInt(0x64617461);		// Chunk ID "data"
-			wav.endian = Endian.LITTLE_ENDIAN;
-			wav.writeUnsignedInt(soundLength);		// Chunk Data Size
-			
-			synthWave(wav);
-			
-			wav.position = 0;
-			
-			return wav;
 		}
 		
 		//--------------------------------------------------------------------------
@@ -273,6 +218,79 @@
 		//  Synth Methods
 		//
 		//--------------------------------------------------------------------------
+		
+		/**
+		 * Synthesize the playable sound
+		 */
+		public function synthesize():void
+		{
+			validate();
+			reset(true);
+			
+			_waveData = new ByteArray();
+			synthWave(_waveData, true);
+			
+			_waveDataLength = _waveData.length;
+			
+			if(_waveDataLength < 24576)
+			{
+				// If the sound is smaller than the buffer length, add silence to allow it to play
+				_waveData.position = _waveDataLength;
+				for(var i:uint = 0, l:uint = 24576 - _waveDataLength; i < l; i++) _waveData.writeFloat(0.0);
+				
+				_waveDataLength = 24576;
+			}
+			
+			_waveData.position = 0;
+		}
+		
+		/**
+		 * Makes sure all settings values are within the correct range
+		 */
+		private function validate():void
+		{
+			if (waveType > 3) waveType = 0;
+			if (sampleRate != 22050) sampleRate = 44100;
+			if (bitDepth != 8) bitDepth = 16;
+			
+			masterVolume = 			clamp1(masterVolume);
+			attackTime =  			clamp1(attackTime);
+			sustainTime =  			clamp1(sustainTime);
+			sustainPunch =  		clamp1(sustainPunch);
+			decayTime =  			clamp1(decayTime);
+			startFrequency =  		clamp1(startFrequency);
+			minFrequency =  		clamp1(minFrequency);
+			slide =  				clamp2(slide);
+			deltaSlide =  			clamp2(deltaSlide);
+			vibratoDepth =  		clamp1(vibratoDepth);
+			vibratoSpeed =  		clamp1(vibratoSpeed);
+			changeAmount =  		clamp2(changeAmount);
+			changeSpeed =  			clamp1(changeSpeed);
+			squareDuty =  			clamp1(squareDuty);
+			dutySweep =  			clamp2(dutySweep);
+			repeatSpeed =  			clamp1(repeatSpeed);
+			phaserOffset =  		clamp2(phaserOffset);
+			phaserSweep =  			clamp2(phaserSweep);
+			lpFilterCutoff =  		clamp1(lpFilterCutoff);
+			lpFilterCutoffSweep =  	clamp2(lpFilterCutoffSweep);
+			lpFilterResonance =  	clamp1(lpFilterResonance);
+			hpFilterCutoff =  		clamp1(hpFilterCutoff);
+			hpFilterCutoffSweep =  	clamp2(hpFilterCutoffSweep);
+		}
+		
+		/**
+		 * Clams a value to betwen 0 and 1
+		 * @param	value	Input value
+		 * @return			The value clamped between 0 and 1
+		 */
+		private function clamp1(value:Number):Number { return (value > 1.0) ? 1.0 : ((value < 0.0) ? 0.0 : value); }
+		
+		/**
+		 * Clams a value to betwen -1 and 1
+		 * @param	value	Input value
+		 * @return			The value clamped between -1 and 1
+		 */
+		private function clamp2(value:Number):Number { return (value > 1.0) ? 1.0 : ((value < -1.0) ? -1.0 : value); }
 		
 		/**
 		 * Resets the runing variables
@@ -348,9 +366,9 @@
 		/**
 		 * Writes the wave to the supplied buffer ByteArray
 		 * @param	buffer		A ByteArray to write the wave to
-		 * @param	preview		If the wave should be written for the preview 
+		 * @param	waveData		If the wave should be written for the waveData 
 		 */
-		private function synthWave(buffer:ByteArray, preview:Boolean = false):void
+		private function synthWave(buffer:ByteArray, waveData:Boolean = false):void
 		{
 			var finished:Boolean = false;
 			
@@ -492,7 +510,7 @@
 				if(_superSample > 1.0) 	_superSample = 1.0;
 				if(_superSample < -1.0) _superSample = -1.0;
 				
-				if(preview)
+				if(waveData)
 				{
 					buffer.writeFloat(_superSample);
 					buffer.writeFloat(_superSample);
@@ -528,6 +546,7 @@
 		 */
 		public function generatePickupCoin():void
 		{
+			invalidate();
 			resetParams();
 			
 			startFrequency = 0.4 + Math.random() * 0.5;
@@ -548,6 +567,7 @@
 		 */
 		public function generateLaserShoot():void
 		{
+			invalidate();
 			resetParams();
 			
 			waveType = uint(Math.random() * 3);
@@ -595,6 +615,7 @@
 		 */
 		public function generateExplosion():void
 		{
+			invalidate();
 			resetParams();
 			waveType = 3;
 			
@@ -636,6 +657,7 @@
 		 */
 		public function generatePowerup():void
 		{
+			invalidate();
 			resetParams();
 			
 			if(Math.random() < 0.5) waveType = 1;
@@ -668,6 +690,7 @@
 		 */
 		public function generateHitHurt():void
 		{
+			invalidate();
 			resetParams();
 			waveType = uint(Math.random() * 3);
 			if(waveType == 2) waveType = 3;
@@ -687,6 +710,7 @@
 		 */
 		public function generateJump():void
 		{
+			invalidate();
 			resetParams();
 			
 			waveType = 0;
@@ -706,6 +730,7 @@
 		 */
 		public function generateBlipSelect():void
 		{
+			invalidate();
 			resetParams();
 			
 			waveType = uint(Math.random() * 2);
@@ -759,6 +784,7 @@
 		 */
 		public function mutate():void
 		{
+			invalidate();
 			if(Math.random() < 0.5) startFrequency += 		Math.random() * 0.1 - 0.05;
 			if(Math.random() < 0.5) minFrequency += 		Math.random() * 0.1 - 0.05;
 			if(Math.random() < 0.5) slide += 				Math.random() * 0.1 - 0.05;
@@ -788,6 +814,7 @@
 		 */
 		public function randomize():void
 		{
+			invalidate();
 			waveType = uint(Math.random() * 4);
 			
 			attackTime =  			pow(Math.random()*2-1, 4);
@@ -926,6 +953,7 @@
 		 */
 		public function setSettingsString(string:String):Boolean
 		{
+			invalidate();
 			var values:Array = string.split(",");
 			
 			if (values.length != 24) return false;
@@ -954,6 +982,8 @@
 			hpFilterCutoff =  		Number(values[21]) || 0;
 			hpFilterCutoffSweep =  	Number(values[22]) || 0;
 			masterVolume = 			Number(values[23]) || 0;
+			
+			validate();
 			
 			return true;
 		}   
@@ -1019,6 +1049,7 @@
 		 */
 		public function setSettingsFile(file:ByteArray):void
 		{
+			invalidate();
 			file.position = 0;
 			file.endian = Endian.LITTLE_ENDIAN;
 			
@@ -1060,6 +1091,322 @@
 			
 			changeSpeed = (version >= 101) ? file.readFloat() : 0.0;
 			changeAmount = (version >= 101) ? file.readFloat() : 0.0;
+			
+			validate();
+		}
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  .wav File Methods
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * Returns a ByteArray of the wave in the form of a .wav file, ready to be saved out
+		 * @return	Wave in a .wav file
+		 */
+		public function getWavFile():ByteArray
+		{
+			reset(true);
+			
+			if(_channel) _channel.stop();
+			
+			var soundLength:uint = _envelopeFullLength;
+			if (bitDepth == 16) soundLength *= 2;
+			if (sampleRate == 22050) soundLength /= 2;
+			
+			var filesize:int = 36 + soundLength;
+			var blockAlign:int = bitDepth / 8;
+			var bytesPerSec:int = sampleRate * blockAlign;
+			
+			var wav:ByteArray = new ByteArray();
+			
+			// Header
+			wav.endian = Endian.BIG_ENDIAN;
+			wav.writeUnsignedInt(0x52494646);		// Chunk ID "RIFF"
+			wav.endian = Endian.LITTLE_ENDIAN;
+			wav.writeUnsignedInt(filesize);			// Chunck Data Size
+			wav.endian = Endian.BIG_ENDIAN;
+			wav.writeUnsignedInt(0x57415645);		// RIFF Type "WAVE"
+			
+			// Format Chunk
+			wav.endian = Endian.BIG_ENDIAN;
+			wav.writeUnsignedInt(0x666D7420);		// Chunk ID "fmt "
+			wav.endian = Endian.LITTLE_ENDIAN;
+			wav.writeUnsignedInt(16);				// Chunk Data Size
+			wav.writeShort(1);						// Compression Code PCM
+			wav.writeShort(1);						// Number of channels
+			wav.writeUnsignedInt(sampleRate);		// Sample rate
+			wav.writeUnsignedInt(bytesPerSec);		// Average bytes per second
+			wav.writeShort(blockAlign);				// Block align
+			wav.writeShort(bitDepth);				// Significant bits per sample
+			
+			// Data Chunk
+			wav.endian = Endian.BIG_ENDIAN;
+			wav.writeUnsignedInt(0x64617461);		// Chunk ID "data"
+			wav.endian = Endian.LITTLE_ENDIAN;
+			wav.writeUnsignedInt(soundLength);		// Chunk Data Size
+			
+			synthWave(wav);
+			
+			wav.position = 0;
+			
+			return wav;
+		}
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  Util Methods
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * Returns a copy of this SfxrSynth with all settings duplicated
+		 * @return	A copy of this SfxrSynth
+		 */
+		public function clone():SfxrSynth
+		{
+			var out:SfxrSynth = new SfxrSynth();
+			
+			out.waveType = 				waveType;
+			out.attackTime =  			attackTime;
+			out.sustainTime =  			sustainTime;
+			out.sustainPunch =  		sustainPunch;
+			out.decayTime =  			decayTime;
+			out.startFrequency =  		startFrequency;
+			out.minFrequency =  		minFrequency;
+			out.slide =  				slide;
+			out.deltaSlide =  			deltaSlide;
+			out.vibratoDepth =  		vibratoDepth;
+			out.vibratoSpeed =  		vibratoSpeed;
+			out.changeAmount =  		changeAmount;
+			out.changeSpeed =  			changeSpeed;
+			out.squareDuty =  			squareDuty;
+			out.dutySweep =  			dutySweep;
+			out.repeatSpeed =  			repeatSpeed;
+			out.phaserOffset =  		phaserOffset;
+			out.phaserSweep =  			phaserSweep;
+			out.lpFilterCutoff =  		lpFilterCutoff;
+			out.lpFilterCutoffSweep =  	lpFilterCutoffSweep;
+			out.lpFilterResonance =  	lpFilterResonance;
+			out.hpFilterCutoff =  		hpFilterCutoff;
+			out.hpFilterCutoffSweep =  	hpFilterCutoffSweep;
+			out.masterVolume = 			masterVolume;			
+			
+			out.setWaveData(_waveData);
+			
+			return out;
+		}
+		
+		/**
+		 * Copies the wave data from another ByteArray, used for cloning
+		 * @param	value	ByteArray to copy from
+		 */
+		internal function setWaveData(value:ByteArray):void
+		{
+			if (value == null) invalidate();
+			else
+			{
+				value.position = 0;
+				_waveData = new ByteArray();
+				_waveData.writeBytes(value);
+				_waveDataLength = _waveData.length;
+				value.position = 0;
+			}
+		}
+		
+		/**
+		 * Sets all the parameters in one function
+		 * @param	waveType					Shape of the wave (0:square, 1:saw, 2:sin or 3:noise)
+		 * @param	masterVolume				Overall volume of the sound (0 to 1)
+		 * @param	attackTime                  Length of the volume envelope attack (0 to 1)
+		 * @param	sustainTime                 Length of the volume envelope sustain (0 to 1)
+		 * @param	sustainPunch                Tilts the sustain envelope for more 'pop' (0 to 1)
+		 * @param	decayTime                   Length of the volume envelope decay (yes, I know it's called release) (0 to 1)
+		 * @param	startFrequency              Base note of the sound (0 to 1)
+		 * @param	minFrequency                If sliding, the sound will stop at this frequency, to prevent really low notes (0 to 1)
+		 * @param	slide                       Slides the note up or down (-1 to 1)
+		 * @param	deltaSlide                  Accelerates the slide (-1 to 1)
+		 * @param	vibratoDepth                Strength of the vibrato effect (0 to 1)
+		 * @param	vibratoSpeed                Speed of the vibrato effect (i.e. frequency) (0 to 1)
+		 * @param	changeAmount                Shift in note, either up or down (-1 to 1)
+		 * @param	changeSpeed                 How fast the note shift happens (only happens once) (0 to 1)
+		 * @param	squareDuty                  Controls the ratio between the up and down states of the square wave, changing the tibre (0 to 1)
+		 * @param	dutySweep                   Sweeps the duty up or down (-1 to 1)
+		 * @param	repeatSpeed                 Speed of the note repeating - certain variables are reset each time (0 to 1)
+		 * @param	phaserOffset                Offsets a second copy of the wave by a small phase, changing the tibre (-1 to 1)
+		 * @param	phaserSweep                 Sweeps the phase up or down (-1 to 1)
+		 * @param	lpFilterCutoff              Frequency at which the low-pass filter starts attenuating higher frequencies (0 to 1)
+		 * @param	lpFilterCutoffSweep         Sweeps the low-pass cutoff up or down (-1 to 1)
+		 * @param	lpFilterResonance           Changes the attenuation rate for the low-pass filter, changing the timbre (0 to 1)
+		 * @param	hpFilterCutoff              Frequency at which the high-pass filter starts attenuating lower frequencies (0 to 1)
+		 * @param	hpFilterCutoffSweep         Sweeps the high-pass cutoff up or down (-1 to 1)
+		 */                                 
+		public function setParameters(	waveType:uint = 				0,
+										masterVolume:Number = 			0.5,
+										attackTime:Number = 			0.0,
+										sustainTime:Number = 			0.3,
+										sustainPunch:Number = 			0.0,
+										decayTime:Number = 				0.4,
+										startFrequency:Number = 		0.3,
+										minFrequency:Number = 			0.0,
+										slide:Number = 					0.0,
+										deltaSlide:Number = 			0.0,
+										vibratoDepth:Number = 			0.0,
+										vibratoSpeed:Number = 			0.0,
+										changeAmount:Number = 			0.0,
+										changeSpeed:Number = 			0.0,
+										squareDuty:Number = 			0.0,
+										dutySweep:Number = 				0.0,
+										repeatSpeed:Number = 			0.0,
+										phaserOffset:Number = 			0.0,
+										phaserSweep:Number = 			0.0,
+										lpFilterCutoff:Number = 		1.0,
+										lpFilterCutoffSweep:Number = 	0.0,
+										lpFilterResonance:Number = 		0.0,
+										hpFilterCutoff:Number = 		0.0,
+										hpFilterCutoffSweep:Number = 	0.0):void
+		{
+			invalidate();
+			
+			this.waveType = 			waveType;
+			this.attackTime =  			attackTime;
+			this.sustainTime =  		sustainTime;
+			this.sustainPunch =  		sustainPunch;
+			this.decayTime =  			decayTime;
+			this.startFrequency =  		startFrequency;
+			this.minFrequency =  		minFrequency;
+			this.slide =  				slide;
+			this.deltaSlide =  			deltaSlide;
+			this.vibratoDepth =  		vibratoDepth;
+			this.vibratoSpeed =  		vibratoSpeed;
+			this.changeAmount =  		changeAmount;
+			this.changeSpeed =  		changeSpeed;
+			this.squareDuty =  			squareDuty;
+			this.dutySweep =  			dutySweep;
+			this.repeatSpeed =  		repeatSpeed;
+			this.phaserOffset =  		phaserOffset;
+			this.phaserSweep =  		phaserSweep;
+			this.lpFilterCutoff =  		lpFilterCutoff;
+			this.lpFilterCutoffSweep =  lpFilterCutoffSweep;
+			this.lpFilterResonance =  	lpFilterResonance;
+			this.hpFilterCutoff =  		hpFilterCutoff;
+			this.hpFilterCutoffSweep =  hpFilterCutoffSweep;
+			this.masterVolume = 		masterVolume;	
+			
+			validate();
+		}
+		
+		/**
+		 * Sets the volume envelope parameters
+		 * @param	attackTime		Length of the volume envelope attack (0 to 1)
+		 * @param	sustainTime		Length of the volume envelope sustain (0 to 1)
+		 * @param	decayTime		Length of the volume envelope decay (0 to 1)
+		 * @param	sustainPunch	Tilts the sustain envelope for more 'pop' (0 to 1)
+		 */
+		public function setVolumeEnvelope(attackTime:Number, sustainTime:Number, decayTime:Number, sustainPunch:Number = 0.0):void
+		{
+			invalidate();
+			
+			this.attackTime =  			attackTime;
+			this.sustainTime =  		sustainTime;
+			this.decayTime =  			decayTime;
+			this.sustainPunch =  		sustainPunch;
+		}
+		
+		/**
+		 * Set the frequency and slide parameters
+		 * @param	startFrequency	Base note of the sound (0 to 1)
+		 * @param	minFrequency    If sliding, the sound will stop at this frequency, to prevent really low notes (0 to 1)
+		 * @param	slide           Slides the note up or down (-1 to 1)
+		 * @param	deltaSlide      Accelerates the slide (-1 to 1)
+		 */                      
+		public function setFrequency(startFrequency:Number, minFrequency:Number = 0.0, slide:Number = 	0.0, deltaSlide:Number = 0.0):void
+		{
+			invalidate();
+			
+			this.startFrequency =  		startFrequency;
+			this.minFrequency =  		minFrequency;
+			this.slide =  				slide;
+			this.deltaSlide =  			deltaSlide;
+		}
+		
+		/**
+		 * Sets the vibrato parameters
+		 * @param	vibratoDepth	Strength of the vibrato effect (0 to 1)
+		 * @param	vibratoSpeed    Speed of the vibrato effect (i.e. frequency) (0 to 1)
+		 */                      
+		public function setVibrato(vibratoDepth:Number, vibratoSpeed:Number):void
+		{
+			invalidate();
+			
+			this.vibratoDepth =  		vibratoDepth;
+			this.vibratoSpeed =  		vibratoSpeed;
+		}
+		
+		/**
+		 * Sets the change parameters
+		 * @param	changeAmount	Shift in note, either up or down (-1 to 1)
+		 * @param	changeSpeed     How fast the note shift happens (only happens once) (0 to 1)
+		 */                      
+		public function setChange(changeAmount:Number, changeSpeed:Number):void
+		{
+			invalidate();
+			
+			this.changeAmount =  		changeAmount;
+			this.changeSpeed =  		changeSpeed;
+		}
+		
+		/**
+		 * Sets the square duty parameters
+		 * @param	squareDuty	Controls the ratio between the up and down states of the square wave, changing the tibre (0 to 1)
+		 * @param	dutySweep   Sweeps the duty up or down (-1 to 1)
+		 */                   
+		public function setDuty(squareDuty:Number, dutySweep:Number = 0.0):void
+		{
+			invalidate();
+			
+			this.squareDuty =  			squareDuty;
+			this.dutySweep =  			dutySweep;
+		}
+		
+		/**
+		 * Sets the phaser parameters
+		 * @param	phaserOffset	Offsets a second copy of the wave by a small phase, changing the tibre (-1 to 1)
+		 * @param	phaserSweep     Sweeps the phase up or down (-1 to 1)
+		 */                      
+		public function setPhaser(phaserOffset:Number, phaserSweep:Number = 0.0):void
+		{
+			invalidate();
+			
+			this.phaserOffset =  		phaserOffset;
+			this.phaserSweep =  		phaserSweep;
+		}
+		
+		/**
+		 * Sets the low-pass filter parameters
+		 * @param	lpFilterCutoff			Frequency at which the low-pass filter starts attenuating higher frequencies (0 to 1)
+		 * @param	lpFilterCutoffSweep     Sweeps the low-pass cutoff up or down (-1 to 1)
+		 * @param	lpFilterResonance       Changes the attenuation rate for the low-pass filter, changing the timbre (0 to 1)
+		 */                             
+		public function setLowPassFilter(lpFilterCutoff:Number, lpFilterCutoffSweep:Number = 0.0, lpFilterResonance:Number = 0.0):void
+		{
+			invalidate();
+			
+			this.lpFilterCutoff =  		lpFilterCutoff;
+			this.lpFilterCutoffSweep =  lpFilterCutoffSweep;
+			this.lpFilterResonance =  	lpFilterResonance;
+		}
+		
+		/**
+		 * Sets the high-pass filter parameters
+		 * @param	hpFilterCutoff			Frequency at which the high-pass filter starts attenuating lower frequencies (0 to 1)
+		 * @param	hpFilterCutoffSweep     Sweeps the high-pass cutoff up or down (-1 to 1)
+		 */                             
+		public function setHighPassFilter(hpFilterCutoff:Number, hpFilterCutoffSweep:Number = 0.0):void
+		{
+			this.hpFilterCutoff =  		hpFilterCutoff;
+			this.hpFilterCutoffSweep =  hpFilterCutoffSweep;
 		}
 	}
 }
