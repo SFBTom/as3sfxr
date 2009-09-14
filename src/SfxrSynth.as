@@ -153,24 +153,6 @@
 		
 		//--------------------------------------------------------------------------
 		//	
-		//  Constructor
-		//
-		//--------------------------------------------------------------------------
-		
-		/**
-		 * Instantiates the Sound instance and ssets up the buffers as fixed length Vectors
-		 */
-		public function SfxrSynth():void 
-		{
-			_sound = new Sound();
-			_sound.addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
-			
-			_phaserBuffer = new Vector.<Number>(1024, true);
-			_noiseBuffer = new Vector.<Number>(32, true);
-		}
-		
-		//--------------------------------------------------------------------------
-		//	
 		//  Sound Methods
 		//
 		//--------------------------------------------------------------------------
@@ -188,7 +170,37 @@
 			_waveDataPos = 0;
 			_waveDataBytes = 24576;
 			
+			if (!_sound)
+			{
+				_sound = new Sound();
+				_sound.addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
+			}
+			
 			_channel = _sound.play();
+		}
+		
+		/**
+		 * Plays a slightly modified version of the sound, without changing the original data
+		 */
+		public function playMutated(mutation:Number = 0.05):void
+		{
+			var original:SfxrSynth = clone();
+			
+			mutate(mutation);
+			
+			synthesize();
+			
+			play();
+			
+			var data:ByteArray = _waveData;
+			var channel:SoundChannel = _channel;
+			
+			_channel = null;
+			
+			copyFrom(original);
+			
+			_waveData = data;
+			_channel = channel;
 		}
 		
 		/**
@@ -353,13 +365,17 @@
 				_phaserDeltaOffset = phaserSweep * phaserSweep;
 				if(_phaserDeltaOffset < 0.0) _phaserDeltaOffset = -_phaserDeltaOffset;
 				_phaserPos = 0;
-				for(var i:uint = 0; i < 1024; i++) _phaserBuffer[i] = 0.0;
 				
+				if(!_phaserBuffer) _phaserBuffer = new Vector.<Number>(1024, true);
+				if(!_noiseBuffer) _noiseBuffer = new Vector.<Number>(32, true);
+				
+				for(var i:uint = 0; i < 1024; i++) _phaserBuffer[i] = 0.0;
 				for(i = 0; i < 32; i++) _noiseBuffer[i] = Math.random() * 2.0 - 1.0;
 				
 				_repeatTime = 0;
-				_repeatLimit = int((1.0-repeatSpeed) * (1.0-repeatSpeed)) * 20000 + 32;
-				if(repeatSpeed == 0.0) _repeatLimit = 0;
+				
+				if (repeatSpeed == 0.0) _repeatLimit = 0;
+				else 					_repeatLimit = int((1.0-repeatSpeed) * (1.0-repeatSpeed) * 20000) + 32;
 			}
 		}
 		
@@ -782,31 +798,33 @@
 		/**
 		 * Randomly adjusts the parameters ever so slightly
 		 */
-		public function mutate():void
+		public function mutate(mutation:Number = 0.05):void
 		{
 			invalidate();
-			if(Math.random() < 0.5) startFrequency += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) minFrequency += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) slide += 				Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) deltaSlide += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) squareDuty += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) dutySweep += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) vibratoDepth += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) vibratoSpeed += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) attackTime += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) sustainTime += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) decayTime += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) sustainPunch += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) lpFilterCutoff += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) lpFilterCutoffSweep += 	Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) lpFilterResonance += 	Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) hpFilterCutoff += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) hpFilterCutoffSweep += 	Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) phaserOffset += 		Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) phaserSweep += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) repeatSpeed += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) changeSpeed += 			Math.random() * 0.1 - 0.05;
-			if(Math.random() < 0.5) changeAmount += 		Math.random() * 0.1 - 0.05;
+			if(Math.random() < 0.5) startFrequency += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) minFrequency += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) slide += 				Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) deltaSlide += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) squareDuty += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) dutySweep += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) vibratoDepth += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) vibratoSpeed += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) attackTime += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) sustainTime += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) decayTime += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) sustainPunch += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) lpFilterCutoff += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) lpFilterCutoffSweep += 	Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) lpFilterResonance += 	Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) hpFilterCutoff += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) hpFilterCutoffSweep += 	Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) phaserOffset += 		Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) phaserSweep += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) repeatSpeed += 			Math.random() * mutation*2 - mutation;
+			if(Math.random() < 0.5) changeSpeed += 			Math.random() * mutation*2 - mutation;
+			if (Math.random() < 0.5) changeAmount += 		Math.random() * mutation*2 - mutation;
+			
+			validate();
 		}
 		
 		/**
@@ -1193,27 +1211,44 @@
 			out.hpFilterCutoffSweep =  	hpFilterCutoffSweep;
 			out.masterVolume = 			masterVolume;			
 			
-			out.setWaveData(_waveData);
-			
 			return out;
 		}
 		
 		/**
-		 * Copies the wave data from another ByteArray, used for cloning
-		 * @param	value	ByteArray to copy from
+		 * Copies parameters from another instance
+		 * @param	synth	Instance to copy parameters from
 		 */
-		internal function setWaveData(value:ByteArray):void
+		public function copyFrom(synth:SfxrSynth):void
 		{
-			if (value == null) invalidate();
-			else
-			{
-				value.position = 0;
-				_waveData = new ByteArray();
-				_waveData.writeBytes(value);
-				_waveDataLength = _waveData.length;
-				value.position = 0;
-			}
-		}
+			invalidate();
+			
+			waveType = 				synth.waveType;
+			attackTime =            synth.attackTime;
+			sustainTime =           synth.sustainTime;
+			sustainPunch =          synth.sustainPunch;
+			decayTime =             synth.decayTime;
+			startFrequency =        synth.startFrequency;
+			minFrequency =          synth.minFrequency;
+			slide =                 synth.slide;
+			deltaSlide =            synth.deltaSlide;
+			vibratoDepth =          synth.vibratoDepth;
+			vibratoSpeed =          synth.vibratoSpeed;
+			changeAmount =          synth.changeAmount;
+			changeSpeed =           synth.changeSpeed;
+			squareDuty =            synth.squareDuty;
+			dutySweep =             synth.dutySweep;
+			repeatSpeed =           synth.repeatSpeed;
+			phaserOffset =          synth.phaserOffset;
+			phaserSweep =           synth.phaserSweep;
+			lpFilterCutoff =        synth.lpFilterCutoff;
+			lpFilterCutoffSweep =   synth.lpFilterCutoffSweep;
+			lpFilterResonance =     synth.lpFilterResonance;
+			hpFilterCutoff =        synth.hpFilterCutoff;
+			hpFilterCutoffSweep =   synth.hpFilterCutoffSweep;
+			masterVolume = 			synth.masterVolume;
+			
+			validate();
+		}                        
 		
 		/**
 		 * Sets all the parameters in one function
@@ -1405,6 +1440,8 @@
 		 */                             
 		public function setHighPassFilter(hpFilterCutoff:Number, hpFilterCutoffSweep:Number = 0.0):void
 		{
+			invalidate();
+			
 			this.hpFilterCutoff =  		hpFilterCutoff;
 			this.hpFilterCutoffSweep =  hpFilterCutoffSweep;
 		}
