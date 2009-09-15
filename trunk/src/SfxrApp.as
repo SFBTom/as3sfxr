@@ -151,7 +151,7 @@
 			addButton("NOISE", 			clickNoise, 		490, 28, 1, true);
 			
 			// Play / save / export
-			addButton("PLAY SOUND", 	clickPlaySound, 	490, 198);
+			addButton("PLAY SOUND", 	clickPlaySound, 	490, 228);
 			addButton("LOAD SOUND", 	clickLoadSound, 	490, 288);
 			addButton("SAVE SOUND", 	clickSaveSound, 	490, 318);
 			addButton("EXPORT .WAV", 	clickExportWav, 	490, 378, 3);
@@ -588,7 +588,7 @@
 			addSlider("LP FILTER RESONANCE", 	"lpFilterResonance", 	350, 412);
 			addSlider("HP FILTER CUTOFF", 		"hpFilterCutoff", 		350, 430);
 			addSlider("HP FILTER CUTOFF SWEEP", "hpFilterCutoffSweep", 	350, 448, true);
-			addSlider("", 						"masterVolume", 		492, 178);
+			addSlider("", 						"masterVolume", 		492, 208);
 		}
 		
 		/**
@@ -728,7 +728,7 @@
 															160,336,	460,336,
 															160,372,	460,372,
 															160, 462,	460, 462,
-															590,182, 618,182, 618,388, 590,388])));
+															590,212, 618,212, 618,388, 590,388])));
 			lines.push(new GraphicsStroke(1, false, LineScaleMode.NORMAL, CapsStyle.NONE, JointStyle.MITER, 3, new GraphicsSolidFill(0)));
 			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2]), 
 										Vector.<Number>([	160, 65, 	160, 463,
@@ -737,14 +737,18 @@
 			graphics.drawGraphicsData(lines);
 			
 			graphics.lineStyle(2, 0xFF0000, 1, true, LineScaleMode.NORMAL, CapsStyle.SQUARE, JointStyle.MITER);
-			graphics.drawRect(549.5, 177.5, 43, 10);
+			graphics.drawRect(549.5, 207.5, 43, 10);
 			
-			addLabel("COPY/PASTE SETTINGS", 470, 75, 0x877569, 500);
-			addLabel("TO SHARE SOUNDS", 484, 89, 0x877569, 500);
-			addLabel("BASED ON SFXR BY", 480, 115, 0x877569, 500);
-			addLabel("TOMAS PETTERSSON", 480, 129, 0x877569, 500);
+			addLabel("CLICK ON LABELS", 484, 68, 0x877569, 500);
+			addLabel("TO RESET SLIDERS", 480, 82, 0x877569, 500);
 			
-			addLabel("VOLUME", 516, 162, 0);
+			addLabel("COPY/PASTE SETTINGS", 470, 108, 0x877569, 500);
+			addLabel("TO SHARE SOUNDS", 484, 122, 0x877569, 500);
+			
+			addLabel("BASED ON SFXR BY", 480, 148, 0x877569, 500);
+			addLabel("TOMAS PETTERSSON", 480, 162, 0x877569, 500);
+			
+			addLabel("VOLUME", 516, 192, 0);
 			
 			addLabel("GENERATOR", 6, 8, 0x504030);
 			addLabel("MANUAL SETTINGS", 122, 8, 0x504030);
