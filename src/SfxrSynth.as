@@ -217,6 +217,14 @@
 		}
 		
 		/**
+		 * Stops the currently playing sound
+		 */
+		public function stop():void
+		{
+			if(_channel) _channel.stop();
+		}
+		
+		/**
 		 * Deletes the current wave data, forcing it to be synthesized again on the next play
 		 */
 		public function invalidate():void
