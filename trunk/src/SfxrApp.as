@@ -73,10 +73,15 @@
 		private var _waveformLookup:Array;			// Look up for waveform buttons
 		private var _squareLookup:Array;			// Look up for sliders controlling a square wave property
 		
+		private var _back:TinyButton;				// Button to skip back a sound
+		private var _forward:TinyButton;			// Button to skip forward a sound
+		private var _history:Vector.<SfxrSynth>;	// List of generated settings
+		private var _historyPos:int;				// Current history position
+		
 		private var _copyPaste:TextField;			// Input TextField for the settings
 		
-		private var _logoRect:Rectangle;
-		private var _sfxrRect:Rectangle;
+		private var _logoRect:Rectangle;			// Click rectangle for SFB website link
+		private var _sfxrRect:Rectangle;			// Click rectangle for LD website link
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -96,6 +101,9 @@
 			_sliderLookup = {};
 			_waveformLookup = [];
 			_squareLookup = [];
+			
+			_history = new Vector.<SfxrSynth>();
+			_history.push(_synth);
 			
 			drawGraphics();
 			drawButtons();
@@ -127,8 +135,14 @@
 			addButton("HIT/HURT", 		clickHitHurt, 		4, 152);
 			addButton("JUMP", 			clickJump, 			4, 182);
 			addButton("BLIP/SELECT", 	clickBlipSelect, 	4, 212);
-			addButton("MUTATE", 		clickMutate, 		4, 384);
-			addButton("RANDOMIZE", 		clickRandomize, 	4, 414, 2);
+			addButton("MUTATE", 		clickMutate, 		4, 324);
+			addButton("RANDOMIZE", 		clickRandomize, 	4, 354, 2);
+			
+			// History
+			_back = 	addButton("BACK", 		clickBack, 		4, 384);
+			_forward = 	addButton("FORWARD", 	clickForward, 	4, 414);
+			_back.enabled = false;
+			_forward.enabled = false;
 			
 			// Waveform
 			addButton("SQUAREWAVE", 	clickSquarewave, 	130, 28, 1, true);
@@ -155,7 +169,7 @@
 		 * @param	selectable		If the button is selectable
 		 * @param	selected		If the button starts as selected
 		 */
-		private function addButton(	label:String, onClick:Function, x:Number, y:Number, border:Number = 1, selectable:Boolean = false):void
+		private function addButton(label:String, onClick:Function, x:Number, y:Number, border:Number = 1, selectable:Boolean = false):TinyButton
 		{
 			var button:TinyButton = new TinyButton(onClick, label, border, selectable);
 			button.x = x;
@@ -163,6 +177,8 @@
 			addChild(button);
 			
 			if(selectable) _waveformLookup.push(button);
+			
+			return button;
 		}
 		
 		/**
@@ -185,6 +201,7 @@
 		 */
 		private function clickPickupCoin(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generatePickupCoin();
 			updateSliders();
 			updateButtons();
@@ -198,6 +215,7 @@
 		 */
 		private function clickLaserShoot(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generateLaserShoot();
 			updateSliders();
 			updateButtons();
@@ -211,6 +229,7 @@
 		 */
 		private function clickExplosion(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generateExplosion();
 			updateSliders();
 			updateButtons();
@@ -224,6 +243,7 @@
 		 */
 		private function clickPowerup(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generatePowerup();
 			updateSliders();
 			updateButtons();
@@ -237,6 +257,7 @@
 		 */
 		private function clickHitHurt(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generateHitHurt();
 			updateSliders();
 			updateButtons();
@@ -250,6 +271,7 @@
 		 */
 		private function clickJump(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generateJump();
 			updateSliders();
 			updateButtons();
@@ -263,6 +285,7 @@
 		 */
 		private function clickBlipSelect(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.generateBlipSelect();
 			updateSliders();
 			updateButtons();
@@ -276,6 +299,7 @@
 		 */
 		private function clickMutate(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.mutate();
 			updateSliders();
 			updateButtons();
@@ -289,12 +313,74 @@
 		 */
 		private function clickRandomize(button:TinyButton):void
 		{
+			addToHistory();
 			_synth.randomize();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
 			_synth.play();
 		}          
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  History Methods
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * When the back button is clicked, moves back through the history
+		 * @param	button	TinyButton clicked
+		 */
+		private function clickBack(button:TinyButton):void
+		{
+			_historyPos--;
+			if(_historyPos == 0) 					_back.enabled = false;
+			if(_historyPos < _history.length - 1) 	_forward.enabled = true;
+			
+			_synth.stop();
+			_synth = _history[_historyPos];
+			
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
+			
+			_synth.play();
+		}
+		
+		/**
+		 * When the forward button is clicked, moves forward through the history
+		 * @param	button	TinyButton clicked
+		 */
+		private function clickForward(button:TinyButton):void
+		{
+			_historyPos++;
+			if(_historyPos > 0) 					_back.enabled = true;
+			if(_historyPos == _history.length - 1) 	_forward.enabled = false;
+			
+			_synth.stop();
+			_synth = _history[_historyPos];
+			
+			updateSliders();
+			updateButtons();
+			updateCopyPaste();
+			
+			_synth.play();
+		}
+		
+		/**
+		 * Adds a new sound effect to the history. 
+		 * Called just before a new sound effect is generated.
+		 */
+		private function addToHistory():void
+		{
+			_historyPos++;
+			_synth = _synth.clone();
+			_history = _history.slice(0, _historyPos);
+			_history.push(_synth);
+			
+			_back.enabled = true;
+			_forward.enabled = false;
+		}   
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -416,6 +502,7 @@
 			var file:FileReference = e.target as FileReference;
 			file.removeEventListener(Event.COMPLETE, onLoadSettings);
 			
+			addToHistory();
 			_synth.setSettingsFile(file.data);
 			updateSliders();
 			updateButtons();
@@ -601,6 +688,8 @@
 		 */
 		private function updateFromCopyPaste(e:TextEvent):void
 		{
+			if (e.text.split(",").length == 24) addToHistory();
+			
 			if (!_synth.setSettingsString(e.text)) 
 			{
 				_copyPaste.setSelection(0, _copyPaste.text.length);

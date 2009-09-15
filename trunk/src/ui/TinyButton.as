@@ -1,5 +1,6 @@
 ﻿package ui
 {
+	import flash.display.BlendMode;
 	import flash.display.CapsStyle;
 	import flash.display.JointStyle;
 	import flash.display.LineScaleMode;
@@ -55,6 +56,8 @@
 		protected var _selected:Boolean;				// If the button is selected (only used for wave selection)
 		protected var _selectable:Boolean;				// If the button is selectable (only used for wave selection)
 		
+		protected var _enabled:Boolean;					// If the button is currently clickable
+		
 		protected var _onClick:Function;				// Callback function for when the button is clicked
 		
 		//--------------------------------------------------------------------------
@@ -86,6 +89,15 @@
 			}
 		}
 		
+		/** Enables/disables the button */
+		public function set enabled(value:Boolean):void
+		{
+			if(value) 	alpha = 1.0;
+			else		alpha = 0.3;
+			
+			_enabled = value;
+		}
+		
 		//--------------------------------------------------------------------------
 		//	
 		//  Constructor
@@ -106,6 +118,7 @@
 			
 			_selectable = selectable;
 			_selected = false;
+			_enabled = true;
 			
 			_backOff = drawRect(border, 0, 0xA09088);
 			_backDown = drawRect(border, 0xA09088, 0xFFF0E0);
@@ -129,6 +142,7 @@
 			addChild(_text);
 			
 			mouseChildren = false;
+			blendMode = BlendMode.LAYER;
 			
 			addEventListener(Event.ADDED_TO_STAGE, onAdded);
 		}
@@ -153,7 +167,7 @@
 		 */
 		private function onMouseDown(e:MouseEvent):void 
 		{
-			if (_rect.contains(stage.mouseX, stage.mouseY))
+			if (_enabled && _rect.contains(stage.mouseX, stage.mouseY))
 			{
 				stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
 				
