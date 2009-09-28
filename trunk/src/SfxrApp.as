@@ -95,7 +95,7 @@
 		public function SfxrApp() 
 		{
 			_synth = new SfxrSynth();
-			_synth.randomize();
+			SfxrGenerator.randomize(_synth);
 			
 			_propLookup = new Dictionary();
 			_sliderLookup = {};
@@ -202,7 +202,7 @@
 		private function clickPickupCoin(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generatePickupCoin();
+			SfxrGenerator.generatePickupCoin(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -216,7 +216,7 @@
 		private function clickLaserShoot(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generateLaserShoot();
+			SfxrGenerator.generateLaserShoot(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -230,7 +230,7 @@
 		private function clickExplosion(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generateExplosion();
+			SfxrGenerator.generateExplosion(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -244,7 +244,7 @@
 		private function clickPowerup(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generatePowerup();
+			SfxrGenerator.generatePowerup(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -258,7 +258,7 @@
 		private function clickHitHurt(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generateHitHurt();
+			SfxrGenerator.generateHitHurt(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -272,7 +272,7 @@
 		private function clickJump(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generateJump();
+			SfxrGenerator.generateJump(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -286,7 +286,7 @@
 		private function clickBlipSelect(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.generateBlipSelect();
+			SfxrGenerator.generateBlipSelect(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -300,7 +300,7 @@
 		private function clickMutate(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.mutate();
+			SfxrGenerator.mutate(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -314,7 +314,7 @@
 		private function clickRandomize(button:TinyButton):void
 		{
 			addToHistory();
-			_synth.randomize();
+			SfxrGenerator.randomize(_synth);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -395,7 +395,7 @@
 		private function clickSquarewave(button:TinyButton):void
 		{
 			_synth.waveType = 0;
-			_synth.invalidate();
+			_synth.deleteCache();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -407,7 +407,7 @@
 		private function clickSawtooth(button:TinyButton):void
 		{
 			_synth.waveType = 1;
-			_synth.invalidate();
+			_synth.deleteCache();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -419,7 +419,7 @@
 		private function clickSinewave(button:TinyButton):void
 		{
 			_synth.waveType = 2;
-			_synth.invalidate();
+			_synth.deleteCache();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -431,7 +431,7 @@
 		private function clickNoise(button:TinyButton):void
 		{
 			_synth.waveType = 3;
-			_synth.invalidate();
+			_synth.deleteCache();
 			selectedSwitch(button);
 			updateCopyPaste();
 		}
@@ -503,7 +503,7 @@
 			file.removeEventListener(Event.COMPLETE, onLoadSettings);
 			
 			addToHistory();
-			_synth.setSettingsFile(file.data);
+			setSettingsFile(file.data);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -515,7 +515,7 @@
 		 */
 		private function clickSaveSound(button:TinyButton):void
 		{
-			var file:ByteArray = _synth.getSettingsFile();
+			var file:ByteArray = getSettingsFile();
 			
 			new FileReference().save(file, "sfx.sfs");
 		}
@@ -553,6 +553,113 @@
 			else 						_synth.bitDepth = 16;
 			
 			button.label = _synth.bitDepth + "-BIT";
+		}
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  Settings File Methods
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * Writes the current parameters to a ByteArray and returns it
+		 * Compatible with the original Sfxr files
+		 * @return	ByteArray of settings data
+		 */
+		public function getSettingsFile():ByteArray
+		{
+			var file:ByteArray = new ByteArray();
+			file.endian = Endian.LITTLE_ENDIAN;
+			
+			file.writeInt(102);
+			file.writeInt(_synth.waveType);
+			file.writeFloat(_synth.masterVolume);
+			
+			file.writeFloat(_synth.startFrequency);
+			file.writeFloat(_synth.minFrequency);
+			file.writeFloat(_synth.slide);
+			file.writeFloat(_synth.deltaSlide);
+			file.writeFloat(_synth.squareDuty);
+			file.writeFloat(_synth.dutySweep);
+			
+			file.writeFloat(_synth.vibratoDepth);
+			file.writeFloat(_synth.vibratoSpeed);
+			file.writeFloat(0);
+			
+			file.writeFloat(_synth.attackTime);
+			file.writeFloat(_synth.sustainTime);
+			file.writeFloat(_synth.decayTime);
+			file.writeFloat(_synth.sustainPunch);
+			
+			file.writeBoolean(false);
+			file.writeFloat(_synth.lpFilterResonance);
+			file.writeFloat(_synth.lpFilterCutoff);
+			file.writeFloat(_synth.lpFilterCutoffSweep);
+			file.writeFloat(_synth.hpFilterCutoff);
+			file.writeFloat(_synth.hpFilterCutoffSweep);
+			
+			file.writeFloat(_synth.phaserOffset);
+			file.writeFloat(_synth.phaserSweep);
+			
+			file.writeFloat(_synth.repeatSpeed);
+			
+			file.writeFloat(_synth.changeSpeed);
+			file.writeFloat(_synth.changeAmount);
+			
+			return file;
+		}
+		
+		/**
+		 * Reads parameters from a ByteArray file
+		 * Compatible with the original Sfxr files
+		 * @param	file	ByteArray of settings data
+		 */
+		public function setSettingsFile(file:ByteArray):void
+		{
+			_synth.deleteCache();
+			file.position = 0;
+			file.endian = Endian.LITTLE_ENDIAN;
+			
+			var version:int = file.readInt();
+			
+			if(version != 100 && version != 101 && version != 102) return;
+			
+			_synth.waveType = file.readInt();
+			_synth.masterVolume = (version == 102) ? file.readFloat() : 0.5;
+			
+			_synth.startFrequency = file.readFloat();
+			_synth.minFrequency = file.readFloat();
+			_synth.slide = file.readFloat();
+			_synth.deltaSlide = (version >= 101) ? file.readFloat() : 0.0;
+			
+			_synth.squareDuty = file.readFloat();
+			_synth.dutySweep = file.readFloat();
+			
+			_synth.vibratoDepth = file.readFloat();
+			_synth.vibratoSpeed = file.readFloat();
+			var unusedVibratoDelay:Number = file.readFloat();
+			
+			_synth.attackTime = file.readFloat();
+			_synth.sustainTime = file.readFloat();
+			_synth.decayTime = file.readFloat();
+			_synth.sustainPunch = file.readFloat();
+			
+			var unusedFilterOn:Boolean = file.readBoolean();
+			_synth.lpFilterResonance = file.readFloat();
+			_synth.lpFilterCutoff = file.readFloat();
+			_synth.lpFilterCutoffSweep = file.readFloat();
+			_synth.hpFilterCutoff = file.readFloat();
+			_synth.hpFilterCutoffSweep = file.readFloat();
+			
+			_synth.phaserOffset = file.readFloat();
+			_synth.phaserSweep = file.readFloat();
+			
+			_synth.repeatSpeed = file.readFloat();
+			
+			_synth.changeSpeed = (version >= 101) ? file.readFloat() : 0.0;
+			_synth.changeAmount = (version >= 101) ? file.readFloat() : 0.0;
+			
+			_synth.validate();
 		}
 		
 		//--------------------------------------------------------------------------
@@ -621,7 +728,7 @@
 		{
 			_synth[_propLookup[slider]] = slider.value;
 			
-			_synth.invalidate();
+			_synth.deleteCache();
 			
 			updateCopyPaste();
 		}
