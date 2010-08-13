@@ -139,16 +139,16 @@
 		private var _phaserPos:int;							// Position through the phaser buffer
 		private var _phaserBuffer:Vector.<Number>;			// Buffer of wave values used to create the out of phase second wave
 		
-		private var _lpFilterPos:Number;					// Confession time
-		private var _lpFilterOldPos:Number;					// I can't quite get a handle on how the filters work
-		private var _lpFilterDeltaPos:Number;				// And the variables in the original source had short, meaningless names
-		private var _lpFilterCutoff:Number;					// Perhaps someone would be kind enough to enlighten me
-		private var _lpFilterDeltaCutoff:Number;			// I keep going back and staring at the code
-		private var _lpFilterDamping:Number;				// But nothing comes to mind
+		private var _lpFilterPos:Number;					// Adjusted wave position after low-pass filter
+		private var _lpFilterOldPos:Number;					// Previous low-pass wave position
+		private var _lpFilterDeltaPos:Number;				// Change in low-pass wave position, as allowed by the cutoff and damping
+		private var _lpFilterCutoff:Number;					// Cutoff multiplier which adjusts the amount the wave position can move
+		private var _lpFilterDeltaCutoff:Number;			// Speed of the low-pass cutoff multiplier
+		private var _lpFilterDamping:Number;				// Damping muliplier which restricts how fast the wave position can move
 		
-		private var _hpFilterPos:Number;					// Oh well, it works
-		private var _hpFilterCutoff:Number;					// And I guess that's all that matters
-		private var _hpFilterDeltaCutoff:Number;			// Annoying though
+		private var _hpFilterPos:Number;					// Adjusted wave position after high-pass filter
+		private var _hpFilterCutoff:Number;					// Cutoff multiplier which adjusts the amount the wave position can move
+		private var _hpFilterDeltaCutoff:Number;			// Speed of the high-pass cutoff multiplier
 		
 		private var _noiseBuffer:Vector.<Number>;			// Buffer of random values used to generate noise
 		
@@ -517,7 +517,7 @@
 				}
 				
 				_slide += _deltaSlide;
-				_period = _period * _slide;
+				_period *= _slide;
 				
 				if(_period > _maxPeriod)
 				{
@@ -566,7 +566,7 @@
 				
 				if(_hpFilterDeltaCutoff != 0.0)
 				{
-					_hpFilterCutoff *- _hpFilterDeltaCutoff;
+					_hpFilterCutoff *= _hpFilterDeltaCutoff;
 						 if(_hpFilterCutoff < 0.00001) 	_hpFilterCutoff = 0.00001;
 					else if(_hpFilterCutoff > 0.1) 		_hpFilterCutoff = 0.1;
 				}
@@ -602,7 +602,7 @@
 					
 					if(lpFilterCutoff != 1.0)
 					{
-						_lpFilterDeltaPos += (_sample - _lpFilterPos) * _lpFilterCutoff * 4;
+						_lpFilterDeltaPos += (_sample - _lpFilterPos) * _lpFilterCutoff;
 						_lpFilterDeltaPos -= _lpFilterDeltaPos * _lpFilterDamping;
 					}
 					else
@@ -614,7 +614,7 @@
 					_lpFilterPos += _lpFilterDeltaPos;
 					
 					_hpFilterPos += _lpFilterPos - _lpFilterOldPos;
-					_hpFilterPos -= _hpFilterPos * _lpFilterCutoff;
+					_hpFilterPos -= _hpFilterPos * _hpFilterCutoff;
 					_sample = _hpFilterPos;
 					
 					_phaserBuffer[_phaserPos&1023] = _sample;
