@@ -60,7 +60,7 @@
 		//  Properties
 		//
 		//--------------------------------------------------------------------------
-		[Embed(source = "assets/amiga4ever.ttf", fontName = "Amiga4Ever", mimeType = 'application/x-font')]
+		[Embed(source = "assets/amiga4ever.ttf", fontName = "Amiga4Ever", mimeType = "application/x-font", embedAsCFF = "false")]
 		private var Amiga4Ever:Class;				// Pixel font, original was in a tga file
 		
 		[Embed(source = "assets/logo.png")]
