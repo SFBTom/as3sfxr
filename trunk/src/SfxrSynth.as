@@ -699,37 +699,37 @@
 		public function getSettingsString():String
 		{
 			var string:String = String(waveType);
-			string += "," + to3DP(attackTime) + 			"," + to3DP(sustainTime) 
-					+ "," + to3DP(sustainPunch) + 			"," + to3DP(decayTime) 
-					+ "," + to3DP(startFrequency) + 		"," + to3DP(minFrequency)
-					+ "," + to3DP(slide) + 					"," + to3DP(deltaSlide)
-					+ "," + to3DP(vibratoDepth) + 			"," + to3DP(vibratoSpeed)
-					+ "," + to3DP(changeAmount) + 			"," + to3DP(changeSpeed)
-					+ "," + to3DP(squareDuty) + 			"," + to3DP(dutySweep)
-					+ "," + to3DP(repeatSpeed) + 			"," + to3DP(phaserOffset)
-					+ "," + to3DP(phaserSweep) + 			"," + to3DP(lpFilterCutoff)
-					+ "," + to3DP(lpFilterCutoffSweep) + 	"," + to3DP(lpFilterResonance)
-					+ "," + to3DP(hpFilterCutoff)+ 			"," + to3DP(hpFilterCutoffSweep)
-					+ "," + to3DP(masterVolume);		
+			string += "," + to4DP(attackTime) + 			"," + to4DP(sustainTime) 
+					+ "," + to4DP(sustainPunch) + 			"," + to4DP(decayTime) 
+					+ "," + to4DP(startFrequency) + 		"," + to4DP(minFrequency)
+					+ "," + to4DP(slide) + 					"," + to4DP(deltaSlide)
+					+ "," + to4DP(vibratoDepth) + 			"," + to4DP(vibratoSpeed)
+					+ "," + to4DP(changeAmount) + 			"," + to4DP(changeSpeed)
+					+ "," + to4DP(squareDuty) + 			"," + to4DP(dutySweep)
+					+ "," + to4DP(repeatSpeed) + 			"," + to4DP(phaserOffset)
+					+ "," + to4DP(phaserSweep) + 			"," + to4DP(lpFilterCutoff)
+					+ "," + to4DP(lpFilterCutoffSweep) + 	"," + to4DP(lpFilterResonance)
+					+ "," + to4DP(hpFilterCutoff)+ 			"," + to4DP(hpFilterCutoffSweep)
+					+ "," + to4DP(masterVolume);		
 			
 			return string;
 		}
 		
 		/**
-		 * Returns the number as a string to 3 decimal places
+		 * Returns the number as a string to 4 decimal places
 		 * @param	value	Number to convert
-		 * @return			Number to 3dp as a string
+		 * @return			Number to 4dp as a string
 		 */
-		private function to3DP(value:Number):String
+		private function to4DP(value:Number):String
 		{
-			if (value < 0.001 && value > -0.001) return "";
+			if (value < 0.0001 && value > -0.0001) return "";
 			
 			var string:String = String(value);
 			var split:Array = string.split(".");
 			if (split.length == 1) 	return string;
 			else 					
 			{
-				var out:String = split[0] + "." + split[1].substr(0, 3);
+				var out:String = split[0] + "." + split[1].substr(0, 4);
 				while (out.substr(out.length - 1, 1) == "0") out = out.substr(0, out.length - 1);
 				
 				return out;
