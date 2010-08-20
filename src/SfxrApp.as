@@ -25,6 +25,7 @@
 	import flash.text.TextFormat;
 	import flash.text.TextFormatAlign;
 	import flash.ui.ContextMenu;
+	import flash.ui.Keyboard;
 	import flash.ui.Mouse;
 	import flash.ui.MouseCursor;
 	import flash.utils.ByteArray;
@@ -82,6 +83,7 @@
 		
 		private var _logoRect:Rectangle;			// Click rectangle for SFB website link
 		private var _sfxrRect:Rectangle;			// Click rectangle for LD website link
+		private var _volumeRect:Rectangle;			// Click rectangle for resetting volume
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -90,10 +92,28 @@
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Initialises the synthesizer and draws the interface
+		 * Waits until on the stage before init
 		 */
 		public function SfxrApp() 
 		{
+			if (stage) 	init();
+			else 		addEventListener(Event.ADDED_TO_STAGE, init);
+		}
+		
+		//--------------------------------------------------------------------------
+		//	
+		//  Init Method
+		//
+		//--------------------------------------------------------------------------
+		
+		/**
+		 * Initialises the synthesizer and draws the interface
+		 * @param	e	Added to stage event
+		 */
+		private function init(e:Event = null):void
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, init);
+			
 			_synth = new SfxrSynth();
 			SfxrGenerator.randomize(_synth);
 			
@@ -115,6 +135,11 @@
 			updateCopyPaste();
 		}
 		
+		//--------------------------------------------------------------------------
+		//	
+		//  Keyboard Methods
+		//
+		//--------------------------------------------------------------------------
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -707,7 +732,7 @@
 		 * @param	plusMinus		If the slider ranges from -1 to 1 (true) or 0 to 1 (false)
 		 * @param	square			If the slider is linked to the square duty properties
 		 */
-		private function addSlider(label:String, property:String, x:Number, y:Number, plusMinus:Boolean = false, square:Boolean = false):void
+		private function addSlider(label:String, property:String, x:Number, y:Number, plusMinus:Boolean = false, square:Boolean = false):TinySlider
 		{
 			var slider:TinySlider = new TinySlider(onSliderChange, label, plusMinus);
 			slider.x = x;
@@ -717,7 +742,9 @@
 			_propLookup[slider] = property;
 			_sliderLookup[property] = slider;
 			
-			if(square) _squareLookup.push(slider);
+			if (square) _squareLookup.push(slider);
+			
+			return slider;
 		}
 		
 		/**
@@ -867,17 +894,20 @@
 			
 			_logoRect = logo.getBounds(stage);
 			_sfxrRect = new Rectangle(480, 115, 100, 30);
+			_volumeRect = new Rectangle(516, 192, 200, 15);
+			
 			stage.addEventListener(MouseEvent.MOUSE_DOWN, onClick);
 		}
 		
 		/**
 		 * Handles clicking either
-		 * @param	e
+		 * @param	e	Click event
 		 */
 		private function onClick(e:MouseEvent):void
 		{
 			if (_logoRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.superflashbros.net"));
 			if (_sfxrRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.ludumdare.com/compo/2007/12/13/sfxr-sound-effects-for-all/"));
+			if (_volumeRect.contains(stage.mouseX, stage.mouseY)) _sliderLookup["masterVolume"].value = 0.5;
 		}
 		
 		/**
