@@ -98,6 +98,10 @@
 		//
 		//--------------------------------------------------------------------------
 		
+		private var _finished:Boolean						// If the sound has finished
+		
+		private var _masterVolume:Number;					// masterVolume * masterVolume (for quick calculations)
+		
 		private var _envelopeVolume:Number;					// Current volume of the envelope
 		private var _envelopeStage:int;						// Current stage of the envelope (attack, sustain, decay, end)
 		private var _envelopeTime:Number;					// Current time through current enelope stage
@@ -133,12 +137,14 @@
 		private var _repeatTime:int;						// Counter for the repeats
 		private var _repeatLimit:int;						// Once the time reaches this limit, some of the variables are reset
 		
+		private var _phaser:Boolean;						// If the phaser is active
 		private var _phaserOffset:Number;					// Phase offset for phaser effect
 		private var _phaserDeltaOffset:Number;				// Change in phase offset
 		private var _phaserInt:int;							// Integer phaser offset, for bit maths
 		private var _phaserPos:int;							// Position through the phaser buffer
 		private var _phaserBuffer:Vector.<Number>;			// Buffer of wave values used to create the out of phase second wave
 		
+		private var _filters:Boolean;						// If the filters are active
 		private var _lpFilterPos:Number;					// Adjusted wave position after low-pass filter
 		private var _lpFilterOldPos:Number;					// Previous low-pass wave position
 		private var _lpFilterDeltaPos:Number;				// Change in low-pass wave position, as allowed by the cutoff and damping
@@ -433,14 +439,30 @@
 			
 			if(totalReset)
 			{
+				_masterVolume = masterVolume * masterVolume;
+				
+				if (sustainTime < 0.01) sustainTime = 0.01;
+				
+				var totalTime:Number = attackTime + sustainTime + decayTime;
+				if (totalTime < 0.18) 
+				{
+					var multiplier:Number = 0.18 / totalTime;
+					attackTime *= multiplier;
+					sustainTime *= multiplier;
+					decayTime *= multiplier;
+				}
+				
 				_phase = 0;
+				
+				_filters = lpFilterCutoff != 1.0 || hpFilterCutoff != 0.0;
 				
 				_lpFilterPos = 0.0;
 				_lpFilterDeltaPos = 0.0;
 				_lpFilterCutoff = lpFilterCutoff * lpFilterCutoff * lpFilterCutoff * 0.1;
 				_lpFilterDeltaCutoff = 1.0 + lpFilterCutoffSweep * 0.0001;
 				_lpFilterDamping = 5.0 / (1.0 + lpFilterResonance * lpFilterResonance * 20.0) * (0.01 + _lpFilterCutoff)
-				if(_lpFilterDamping > 0.8) _lpFilterDamping = 0.8;
+				if (_lpFilterDamping > 0.8) _lpFilterDamping = 0.8;
+				_lpFilterDamping = 1.0 - _lpFilterDamping;
 				
 				_hpFilterPos = 0.0;
 				_hpFilterCutoff = hpFilterCutoff * hpFilterCutoff * 0.1;
@@ -463,10 +485,11 @@
 				_envelopeOverLength1 = 1.0 / _envelopeLength1;
 				_envelopeOverLength2 = 1.0 / _envelopeLength2;
 				
+				_phaser = phaserOffset != 0.0 || phaserSweep != 0.0;
+				
 				_phaserOffset = phaserOffset * phaserOffset * 1020.0;
 				if(phaserOffset < 0.0) _phaserOffset = -_phaserOffset;
-				_phaserDeltaOffset = phaserSweep * phaserSweep;
-				if(_phaserDeltaOffset < 0.0) _phaserDeltaOffset = -_phaserDeltaOffset;
+				_phaserDeltaOffset = phaserSweep * phaserSweep * phaserSweep * 0.2;
 				_phaserPos = 0;
 				
 				if(!_phaserBuffer) _phaserBuffer = new Vector.<Number>(1024, true);
@@ -485,18 +508,18 @@
 		/**
 		 * Writes the wave to the supplied buffer ByteArray
 		 * @param	buffer		A ByteArray to write the wave to
-		 * @param	waveData		If the wave should be written for the waveData 
+		 * @param	waveData	If the wave should be written for the waveData
 		 */
 		private function synthWave(buffer:ByteArray, length:uint, waveData:Boolean = false):void
 		{
-			var finished:Boolean = false;
+			_finished = false;
 			
 			_sampleCount = 0;
 			_bufferSample = 0.0;
 			
 			for(var i:uint = 0; i < length; i++)
 			{
-				if(finished) return;
+				if(_finished) return;
 				
 				if(_repeatLimit != 0)
 				{
@@ -522,7 +545,7 @@
 				if(_period > _maxPeriod)
 				{
 					_period = _maxPeriod;
-					if(minFrequency > 0.0) finished = true;
+					if(minFrequency > 0.0) _finished = true;
 				}
 				
 				_periodTemp = _period;
@@ -556,15 +579,18 @@
 					case 0: _envelopeVolume = _envelopeTime * _envelopeOverLength0; 									break;
 					case 1: _envelopeVolume = 1.0 + (1.0 - _envelopeTime * _envelopeOverLength1) * 2.0 * sustainPunch; 	break;
 					case 2: _envelopeVolume = 1.0 - _envelopeTime * _envelopeOverLength2; 								break;
-					case 3: _envelopeVolume = 0.0; finished = true; 													break;
+					case 3: _envelopeVolume = 0.0; _finished = true; 													break;
 				}
 				
-				_phaserOffset += _phaserDeltaOffset;
-				_phaserInt = int(_phaserOffset);
-					 if(_phaserInt < 0) 	_phaserInt = -_phaserInt;
-				else if(_phaserInt > 1023) 	_phaserInt = 1023;
+				if (_phaser)
+				{
+					_phaserOffset += _phaserDeltaOffset;
+					_phaserInt = int(_phaserOffset);
+						 if(_phaserInt < 0) 	_phaserInt = -_phaserInt;
+					else if (_phaserInt > 1023) _phaserInt = 1023;
+				}
 				
-				if(_hpFilterDeltaCutoff != 0.0)
+				if(_filters && _hpFilterDeltaCutoff != 0.0)
 				{
 					_hpFilterCutoff *= _hpFilterDeltaCutoff;
 						 if(_hpFilterCutoff < 0.00001) 	_hpFilterCutoff = 0.00001;
@@ -574,7 +600,6 @@
 				_superSample = 0.0;
 				for(var j:int = 0; j < 8; j++)
 				{
-					_sample = 0.0;
 					_phase++;
 					if(_phase >= _periodTemp)
 					{
@@ -595,39 +620,46 @@
 						case 3: _sample = _noiseBuffer[uint(_phase * 32 / int(_periodTemp))];	break;
 					}
 					
-					_lpFilterOldPos = _lpFilterPos;
-					_lpFilterCutoff *= _lpFilterDeltaCutoff;
-						 if(_lpFilterCutoff < 0.0) _lpFilterCutoff = 0.0;
-					else if(_lpFilterCutoff > 0.1) _lpFilterCutoff = 0.1;
 					
-					if(lpFilterCutoff != 1.0)
+					if (_filters)
 					{
-						_lpFilterDeltaPos += (_sample - _lpFilterPos) * _lpFilterCutoff;
-						_lpFilterDeltaPos -= _lpFilterDeltaPos * _lpFilterDamping;
+						_lpFilterOldPos = _lpFilterPos;
+						_lpFilterCutoff *= _lpFilterDeltaCutoff;
+							 if(_lpFilterCutoff < 0.0) _lpFilterCutoff = 0.0;
+						else if(_lpFilterCutoff > 0.1) _lpFilterCutoff = 0.1;
+						
+						if(lpFilterCutoff != 1.0)
+						{
+							_lpFilterDeltaPos += (_sample - _lpFilterPos) * _lpFilterCutoff;
+							_lpFilterDeltaPos *= _lpFilterDamping;
+						}
+						else
+						{
+							_lpFilterPos = _sample;
+							_lpFilterDeltaPos = 0.0;
+						}
+						
+						_lpFilterPos += _lpFilterDeltaPos;
+						
+						_hpFilterPos += _lpFilterPos - _lpFilterOldPos;
+						_hpFilterPos *= 1.0 - _hpFilterCutoff;
+						_sample = _hpFilterPos;
 					}
-					else
+					
+					if (_phaser)
 					{
-						_lpFilterPos = _sample;
-						_lpFilterDeltaPos = 0.0;
+						_phaserBuffer[_phaserPos&1023] = _sample;
+						_sample += _phaserBuffer[(_phaserPos - _phaserInt + 1024) & 1023];
+						_phaserPos = (_phaserPos + 1) & 1023;
 					}
-					
-					_lpFilterPos += _lpFilterDeltaPos;
-					
-					_hpFilterPos += _lpFilterPos - _lpFilterOldPos;
-					_hpFilterPos -= _hpFilterPos * _hpFilterCutoff;
-					_sample = _hpFilterPos;
-					
-					_phaserBuffer[_phaserPos&1023] = _sample;
-					_sample += _phaserBuffer[(_phaserPos - _phaserInt + 1024) & 1023];
-					_phaserPos = (_phaserPos + 1) & 1023;
 					
 					_superSample += _sample;
 				}
 				
-				_superSample = masterVolume * masterVolume * _envelopeVolume * _superSample / 8.0;
+				_superSample = _masterVolume * _envelopeVolume * _superSample * 0.125;
 				
-				if(_superSample > 1.0) 	_superSample = 1.0;
-				if(_superSample < -1.0) _superSample = -1.0;
+					 if(_superSample > 1.0) 	_superSample = 1.0;
+				else if(_superSample < -1.0) 	_superSample = -1.0;
 				
 				if(waveData)
 				{
