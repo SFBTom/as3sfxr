@@ -81,6 +81,8 @@
 		
 		private var _copyPaste:TextField;			// Input TextField for the settings
 		
+		private var _fileRef:FileReference;			// File reference for loading in sfs file
+		
 		private var _logoRect:Rectangle;			// Click rectangle for SFB website link
 		private var _sfxrRect:Rectangle;			// Click rectangle for LD website link
 		private var _volumeRect:Rectangle;			// Click rectangle for resetting volume
@@ -501,9 +503,9 @@
 		 */
 		private function clickLoadSound(button:TinyButton):void
 		{
-			var file:FileReference = new FileReference();
-			file.addEventListener(Event.SELECT, onSelectSettings);
-			file.browse([new FileFilter("SFX Sample Files (*.sfs)", "*.sfs")]);
+			_fileRef = new FileReference();
+			_fileRef.addEventListener(Event.SELECT, onSelectSettings);
+			_fileRef.browse([new FileFilter("SFX Sample Files (*.sfs)", "*.sfs")]);
 		}
 		
 		/**
@@ -512,10 +514,11 @@
 		 */
 		private function onSelectSettings(e:Event):void
 		{
-			var file:FileReference = e.target as FileReference;
-			file.removeEventListener(Event.SELECT, onSelectSettings);
-			file.addEventListener(Event.COMPLETE, onLoadSettings);
-			file.load();
+			_fileRef.cancel();
+			
+			_fileRef.removeEventListener(Event.SELECT, onSelectSettings);
+			_fileRef.addEventListener(Event.COMPLETE, onLoadSettings);
+			_fileRef.load();
 		}
 		
 		/**
@@ -524,14 +527,15 @@
 		 */
 		private function onLoadSettings(e:Event):void
 		{
-			var file:FileReference = e.target as FileReference;
-			file.removeEventListener(Event.COMPLETE, onLoadSettings);
+			_fileRef.removeEventListener(Event.COMPLETE, onLoadSettings);
 			
 			addToHistory();
-			setSettingsFile(file.data);
+			setSettingsFile(_fileRef.data);
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
+			
+			_fileRef = null;
 		}
 		
 		/**
