@@ -477,7 +477,7 @@
 				_envelopeTime = 0;
 				_envelopeLength0 = attackTime * attackTime * 100000.0;
 				_envelopeLength1 = sustainTime * sustainTime * 100000.0;
-				_envelopeLength2 = decayTime * decayTime * 100000.0;
+				_envelopeLength2 = decayTime * decayTime * 100000.0 + 10;
 				_envelopeLength = _envelopeLength0;
 				_envelopeFullLength = _envelopeLength0 + _envelopeLength1 + _envelopeLength2;
 				
@@ -519,7 +519,7 @@
 			
 			for(var i:uint = 0; i < length; i++)
 			{
-				if(_finished) return;
+				if (_finished) return;
 				
 				if(_repeatLimit != 0)
 				{
