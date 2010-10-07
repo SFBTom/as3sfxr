@@ -1,14 +1,17 @@
 ﻿package
 {
+	import flash.display.Shape;
+	import flash.events.Event;
 	import flash.events.SampleDataEvent;
 	import flash.media.Sound;
 	import flash.media.SoundChannel;
 	import flash.utils.ByteArray;
 	import flash.utils.Endian;
+	import flash.utils.getTimer;
 	/**
 	 * SfxrSynth
 	 * 
-	 * Copyright 2009 Thomas Vian
+	 * Copyright 2010 Thomas Vian
 	 *
 	 * Licensed under the Apache License, Version 2.0 (the "License");
 	 * you may not use this file except in compliance with the License.
@@ -32,65 +35,33 @@
 		//
 		//--------------------------------------------------------------------------
 		
-		public var waveType				:uint = 	0;		// Shape of the wave (0:square, 1:saw, 2:sin or 3:noise)
-		
-		public var sampleRate			:uint = 	44100;	// Samples per second - only used for .wav export
-		
-		public var bitDepth				:uint = 	16;		// Bits per sample - only used for .wav export
-		
-		public var masterVolume			:Number = 	0.5;	// Overall volume of the sound (0 to 1)
-		
-		public var attackTime			:Number =	0.0;	// Length of the volume envelope attack (0 to 1)
-		public var sustainTime			:Number = 	0.0;	// Length of the volume envelope sustain (0 to 1)
-		public var sustainPunch			:Number = 	0.0;	// Tilts the sustain envelope for more 'pop' (0 to 1)
-		public var decayTime			:Number = 	0.0;	// Length of the volume envelope decay (yes, I know it's called release) (0 to 1)
-		
-		public var startFrequency		:Number = 	0.0;	// Base note of the sound (0 to 1)
-		public var minFrequency			:Number = 	0.0;	// If sliding, the sound will stop at this frequency, to prevent really low notes (0 to 1)
-		
-		public var slide				:Number = 	0.0;	// Slides the note up or down (-1 to 1)
-		public var deltaSlide			:Number = 	0.0;	// Accelerates the slide (-1 to 1)
-		
-		public var vibratoDepth			:Number = 	0.0;	// Strength of the vibrato effect (0 to 1)
-		public var vibratoSpeed			:Number = 	0.0;	// Speed of the vibrato effect (i.e. frequency) (0 to 1)
-		
-		public var changeAmount			:Number = 	0.0;	// Shift in note, either up or down (-1 to 1)
-		public var changeSpeed			:Number = 	0.0;	// How fast the note shift happens (only happens once) (0 to 1)
-		
-		public var squareDuty			:Number = 	0.0;	// Controls the ratio between the up and down states of the square wave, changing the tibre (0 to 1)
-		public var dutySweep			:Number = 	0.0;	// Sweeps the duty up or down (-1 to 1)
-		
-		public var repeatSpeed			:Number = 	0.0;	// Speed of the note repeating - certain variables are reset each time (0 to 1)
-		
-		public var phaserOffset			:Number = 	0.0;	// Offsets a second copy of the wave by a small phase, changing the tibre (-1 to 1)
-		public var phaserSweep			:Number = 	0.0;	// Sweeps the phase up or down (-1 to 1)
-		
-		public var lpFilterCutoff		:Number = 	0.0;	// Frequency at which the low-pass filter starts attenuating higher frequencies (0 to 1)
-		public var lpFilterCutoffSweep	:Number = 	0.0;	// Sweeps the low-pass cutoff up or down (-1 to 1)
-		public var lpFilterResonance	:Number = 	0.0;	// Changes the attenuation rate for the low-pass filter, changing the timbre (0 to 1)
-		
-		public var hpFilterCutoff		:Number = 	0.0;	// Frequency at which the high-pass filter starts attenuating lower frequencies (0 to 1)
-		public var hpFilterCutoffSweep	:Number = 	0.0;	// Sweeps the high-pass cutoff up or down (-1 to 1)
-		
-		//--------------------------------------------------------------------------
-		//
-		//  Sound Variables
-		//
-		//--------------------------------------------------------------------------
+		private var _params:SfxrParams = new SfxrParams;	// Params instance
 		
 		private var _sound:Sound;							// Sound instance used to play the sound
 		private var _channel:SoundChannel;					// SoundChannel instance of playing Sound
 		
+		private var _mutation:Boolean;						// If the current sound playing or caching is a mutation
+		
 		private var _cachedWave:ByteArray;					// Cached wave data from a cacheSound() call
-		private var _cachedMutations:Vector.<ByteArray>;	// Cached mutated wave data from a cacheMutations() call
+		private var _cachingNormal:Boolean;					// If the synth is caching a normal sound
+		
+		private var _cachingMutation:int;					// Current caching ID
+		private var _cachedMutation:ByteArray;				// Current caching wave data for mutation
+		private var _cachedMutations:Vector.<ByteArray>;	// Cached mutated wave data
 		private var _cachedMutationsNum:uint;				// Number of cached mutations
+		private var _cachedMutationAmount:Number;			// Amount to mutate during cache
+		
+		private var _cachingAsync:Boolean;					// If the synth is currently caching asynchronously
+		private var _cacheTimePerFrame:uint;				// Maximum time allowed per frame to cache sound asynchronously
+		private var _cachedCallback:Function;				// Function to call when finished caching asynchronously
+		private var _cacheTicker:Shape;						// Shape used for enterFrame event
 		
 		private var _waveData:ByteArray;					// Full wave, read out in chuncks by the onSampleData method
 		private var _waveDataPos:uint;						// Current position in the waveData
 		private var _waveDataLength:uint;					// Number of bytes in the waveData
 		private var _waveDataBytes:uint;					// Number of bytes to write to the soundcard
 		
-		private var _original:SfxrSynth;					// Copied properties for mutationBase
+		private var _original:SfxrParams;					// Copied properties for mutation base
 		
 		//--------------------------------------------------------------------------
 		//
@@ -98,9 +69,11 @@
 		//
 		//--------------------------------------------------------------------------
 		
-		private var _finished:Boolean						// If the sound has finished
+		private var _finished:Boolean;						// If the sound has finished
 		
 		private var _masterVolume:Number;					// masterVolume * masterVolume (for quick calculations)
+		
+		private var _waveType:uint;							// The type of wave to generate
 		
 		private var _envelopeVolume:Number;					// Current volume of the envelope
 		private var _envelopeStage:int;						// Current stage of the envelope (attack, sustain, decay, end)
@@ -114,20 +87,23 @@
 		private var _envelopeOverLength2:Number;			// 1 / _envelopeLength2 (for quick calculations)
 		private var _envelopeFullLength:Number;				// Full length of the volume envelop (and therefore sound)
 		
+		private var _sustainPunch:Number;					// The punch factor (louder at begining of sustain)
+		
 		private var _phase:int;								// Phase through the wave
-		private var _pos:Number;							// Phase expresed as a Number from 0-1
+		private var _pos:Number;							// Phase expresed as a Number from 0-1, used for fast sin approx
 		private var _period:Number;							// Period of the wave
 		private var _periodTemp:Number;						// Period modified by vibrato
 		private var _maxPeriod:Number;						// Maximum period before sound stops (from minFrequency)
 		
 		private var _slide:Number;							// Note slide
 		private var _deltaSlide:Number;						// Change in slide
+		private var _minFreqency:Number;					// Minimum frequency before stopping
 		
 		private var _vibratoPhase:Number;					// Phase through the vibrato sine wave
 		private var _vibratoSpeed:Number;					// Speed at which the vibrato phase moves
 		private var _vibratoAmplitude:Number;				// Amount to change the period of the wave by at the peak of the vibrato wave
 		
-		private var _changeAmount:Number					// Amount to change the note by
+		private var _changeAmount:Number;					// Amount to change the note by
 		private var _changeTime:int;						// Counter for the note change
 		private var _changeLimit:int;						// Once the time reaches this limit, the note changes
 		
@@ -151,6 +127,7 @@
 		private var _lpFilterCutoff:Number;					// Cutoff multiplier which adjusts the amount the wave position can move
 		private var _lpFilterDeltaCutoff:Number;			// Speed of the low-pass cutoff multiplier
 		private var _lpFilterDamping:Number;				// Damping muliplier which restricts how fast the wave position can move
+		private var _lpFilterOn:Boolean;					// If the low pass filter is active
 		
 		private var _hpFilterPos:Number;					// Adjusted wave position after high-pass filter
 		private var _hpFilterCutoff:Number;					// Cutoff multiplier which adjusts the amount the wave position can move
@@ -165,46 +142,107 @@
 		
 		//--------------------------------------------------------------------------
 		//	
+		//  Getters / Setters
+		//
+		//--------------------------------------------------------------------------
+		
+		/** The sound parameters */
+		public function get params():SfxrParams { return _params; }
+		public function set params(value:SfxrParams):void
+		{
+			_params = value;
+			_params.paramsDirty = true;
+		}
+		
+		//--------------------------------------------------------------------------
+		//	
 		//  Sound Methods
 		//
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Plays the sound, synthesizing the sound as it plays
+		 * Plays the sound. If the parameters are dirty, synthesises sound as it plays, caching it for later. 
+		 * If they're not, plays from the cached sound. 
+		 * Won't play if caching asynchronously. 
 		 */
 		public function play():void
 		{
+			if (_cachingAsync) return;
+			
 			stop();
 			
-			reset(true);
+			_mutation = false;
 			
-			if (!_sound)
+			if (_params.paramsDirty || _cachingNormal || !_cachedWave) 
 			{
-				_sound = new Sound();
-				_sound.addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
+				// Needs to cache new data
+				_cachedWave = new ByteArray;
+				_cachingNormal = true;
+				_waveData = null;
+				
+				reset(true);
 			}
+			else
+			{
+				// Play from cached data
+				_waveData = _cachedWave;
+				_waveData.position = 0;
+				_waveDataLength = _waveData.length;
+				_waveDataBytes = 24576;
+				_waveDataPos = 0; 
+			}
+			
+			if (!_sound) (_sound = new Sound()).addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
 			
 			_channel = _sound.play();
 		}
 		
 		/**
-		 * Plays a mutation of the sound, synthesizing the sound as it plays
-		 * @param	mutation	Amount of mutation
+		 * Plays a mutation of the sound.  If the parameters are dirty, synthesises sound as it plays, caching it for later. 
+		 * If they're not, plays from the cached sound. 
+		 * Won't play if caching asynchronously. 
+		 * @param	mutationAmount	Amount of mutation
+		 * @param	mutationsNum	The number of mutations to cache before picking from them
 		 */
-		public function playMutated(mutation:Number = 0.05):void
+		public function playMutated(mutationAmount:Number = 0.05, mutationsNum:uint = 15):void
 		{
 			stop();
 			
-			_original = clone();
-			SfxrGenerator.mutate(this, mutation);
+			if (_cachingAsync) return;
 			
-			reset(true);
+			_mutation = true;
 			
-			if (!_sound)
+			_cachedMutationsNum = mutationsNum;
+			
+			if (_params.paramsDirty || !_cachedMutations) 
 			{
-				_sound = new Sound();
-				_sound.addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleDataCached);
+				// New set of mutations
+				_cachedMutations = new Vector.<ByteArray>();
+				_cachingMutation = 0;
 			}
+			
+			if (_cachingMutation != -1)
+			{
+				// Continuing caching new mutations
+				_cachedMutation = new ByteArray;
+				_cachedMutations[_cachingMutation] = _cachedMutation;
+				_waveData = null;
+				
+				_original = _params.clone();
+				_params.mutate(mutationAmount);
+				reset(true);
+			}
+			else
+			{
+				// Play from random cached mutation
+				_waveData = _cachedMutations[uint(_cachedMutations.length * Math.random())];
+				_waveData.position = 0;
+				_waveDataLength = _waveData.length;
+				_waveDataBytes = 24576;
+				_waveDataPos = 0;
+			}
+			
+			if (!_sound) (_sound = new Sound()).addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
 			
 			_channel = _sound.play();
 		}
@@ -222,18 +260,86 @@
 			
 			if(_original)
 			{
-				copyFrom(_original, false);
+				_params.copyFrom(_original);
 				_original = null;
 			}
 		}
 		
 		/**
-		 * Synthesizes a chunk of the sound to play
+		 * If there is a cached sound to play, reads out of the data. 
+		 * If there isn't, synthesises new chunch of data, caching it as it goes. 
 		 * @param	e	SampleDataEvent to write data to
 		 */
 		private function onSampleData(e:SampleDataEvent):void
 		{
-			synthWave(e.data, 3072, true);
+			if(_waveData)
+			{
+				if(_waveDataPos + _waveDataBytes > _waveDataLength) _waveDataBytes = _waveDataLength - _waveDataPos;
+				
+				if(_waveDataBytes > 0) e.data.writeBytes(_waveData, _waveDataPos, _waveDataBytes);
+				
+				_waveDataPos += _waveDataBytes;
+			}
+			else
+			{	
+				var length:uint;
+				var i:uint, l:uint;
+				
+				if (_mutation)
+				{
+					if (_original)
+					{
+						_waveDataPos = _cachedMutation.position;
+						
+						if (synthWave(_cachedMutation, 3072, true))
+						{
+							_params.copyFrom(_original);
+							_original = null;
+							
+							_cachingMutation++;
+							
+							if ((length = _cachedMutation.length) < 24576)
+							{
+								// If the sound is smaller than the buffer length, add silence to allow it to play
+								_cachedMutation.position = length;
+								for(i = 0, l = 24576 - length; i < l; i++) _cachedMutation.writeFloat(0.0);
+							}
+							
+							if (_cachingMutation >= _cachedMutationsNum)
+							{
+								_cachingMutation = -1;
+							}
+						}
+						
+						_waveDataBytes = _cachedMutation.length - _waveDataPos;
+						
+						e.data.writeBytes(_cachedMutation, _waveDataPos, _waveDataBytes);
+					}
+				}
+				else
+				{
+					if (_cachingNormal)
+					{
+						_waveDataPos = _cachedWave.position;
+						
+						if (synthWave(_cachedWave, 3072, true))
+						{
+							if ((length = _cachedWave.length) < 24576)
+							{
+								// If the sound is smaller than the buffer length, add silence to allow it to play
+								_cachedWave.position = length;
+								for(i = 0, l = 24576 - length; i < l; i++) _cachedWave.writeFloat(0.0);
+							}
+							
+							_cachingNormal = false;
+						}
+						
+						_waveDataBytes = _cachedWave.length - _waveDataPos;
+						
+						e.data.writeBytes(_cachedWave, _waveDataPos, _waveDataBytes);
+					}
+				}
+			}
 		}
 		
 		//--------------------------------------------------------------------------
@@ -243,120 +349,168 @@
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Plays the waveData of the wave, using the FP10 Sound API
+		 * Cache the sound for speedy playback. 
+		 * If a callback is passed in, the caching will be done asynchronously, taking maxTimePerFrame milliseconds 
+		 * per frame to cache, them calling the callback when it's done. 
+		 * If not, the whole sound is cached imidiately - can freeze the player for a few seconds, especially in debug mode. 
+		 * @param	callback			Function to call when the caching is complete
+		 * @param	maxTimePerFrame		Maximum time in milliseconds the caching will use per frame
 		 */
-		public function playCached():void
+		public function cacheSound(callback:Function = null, maxTimePerFrame:uint = 5):void
 		{
 			stop();
 			
-			if (!_cachedWave) cacheSound();
+			if (_cachingAsync) return;
 			
-			_waveData = _cachedWave;
-			
-			playWaveData();
-		}
-		
-		/**
-		 * Plays a slightly modified version of the sound, without changing the original data
-		 * @param	mutations	Number of mutations to cache
-		 * @param	mutation	Amount of mutation
-		 */
-		public function playCachedMutation(mutations:uint = 20, mutation:Number = 0.05):void
-		{
-			stop();
-			
-			if(!_cachedMutations) cacheMutations(mutations, mutation);
-			
-			_waveData = _cachedMutations[uint(Math.random() * _cachedMutationsNum)];
-			
-			playWaveData();
-		}
-		
-		/**
-		 * Plays the curent wave data
-		 */
-		private function playWaveData():void
-		{
-			_waveDataLength = _waveData.length;
-			_waveData.position = 0;
-			_waveDataPos = 0;
-			_waveDataBytes = 24576;
-			
-			if (!_sound)
-			{
-				_sound = new Sound();
-				_sound.addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleDataCached);
-			}
-			
-			_channel = _sound.play();
-		}
-		
-		/**
-		 * Reads out chuncks of data from the waveData wave and writes it to the soundcard
-		 * @param	e	SampleDataEvent to write data to
-		 */
-		private function onSampleDataCached(e:SampleDataEvent):void
-		{
-			if(_waveDataPos + _waveDataBytes > _waveDataLength) _waveDataBytes = _waveDataLength - _waveDataPos;
-			
-			if(_waveDataBytes > 0) e.data.writeBytes(_waveData, _waveDataPos, _waveDataBytes);
-			
-			_waveDataPos += _waveDataBytes;
-		}
-		
-		/**
-		 * Synthesize the playable sound
-		 */
-		public function cacheSound():void
-		{
-			validate();
 			reset(true);
 			
 			_cachedWave = new ByteArray();
-			synthWave(_cachedWave, _envelopeFullLength, true);
 			
-			var length:uint = _cachedWave.length;
-			
-			if(length < 24576)
+			if (Boolean(callback)) 
 			{
-				// If the sound is smaller than the buffer length, add silence to allow it to play
-				_cachedWave.position = length;
-				for(var i:uint = 0, l:uint = 24576 - length; i < l; i++) _cachedWave.writeFloat(0.0);
+				_mutation = false;
+				_cachingNormal = true;
+				_cachingAsync = true;
+				_cacheTimePerFrame = maxTimePerFrame;
+				
+				_cachedCallback = callback;
+				
+				if (!_cacheTicker) _cacheTicker = new Shape;
+				
+				_cacheTicker.addEventListener(Event.ENTER_FRAME, cacheSection);
+			}
+			else
+			{
+				_cachingNormal = false;
+				_cachingAsync = false;
+				
+				synthWave(_cachedWave, _envelopeFullLength, true);
+				
+				var length:uint = _cachedWave.length;
+				
+				if(length < 24576)
+				{
+					// If the sound is smaller than the buffer length, add silence to allow it to play
+					_cachedWave.position = length;
+					for(var i:uint = 0, l:uint = 24576 - length; i < l; i++) _cachedWave.writeFloat(0.0);
+				}
 			}
 		}
 		
 		/**
-		 * Caches a series of mutations on the source sound
-		 * @param	mutations	Number of mutations to cache
-		 * @param	mutation	Amount of mutation
+		 * Caches a series of mutations on the source sound. 
+		 * If a callback is passed in, the caching will be done asynchronously, taking maxTimePerFrame milliseconds 
+		 * per frame to cache, them calling the callback when it's done. 
+		 * If not, the whole sound is cached imidiately - can freeze the player for a few seconds, especially in debug mode. 
+		 * @param	mutationsNum		Number of mutations to cache
+		 * @param	mutationAmount		Amount of mutation
+		 * @param	callback			Function to call when the caching is complete
+		 * @param	maxTimePerFrame		Maximum time in milliseconds the caching will use per frame
 		 */
-		public function cacheMutations(mutations:uint, mutation:Number = 0.05):void
+		public function cacheMutations(mutationsNum:uint, mutationAmount:Number = 0.05, callback:Function = null, maxTimePerFrame:uint = 5):void
 		{
-			_cachedMutationsNum = mutations;
-			var cachedMutations:Vector.<ByteArray> = new Vector.<ByteArray>(mutations, true);
-			
-			var original:SfxrSynth = clone();
-			
-			for(var i:uint = 0; i < _cachedMutationsNum; i++)
-			{
-				SfxrGenerator.mutate(this, mutation);
-				cacheSound();
-				cachedMutations[i] = _cachedWave;
-				copyFrom(original, false);
-			}
-			
-			_cachedMutations = cachedMutations;
-		}
-		
-		/**
-		 * Deletes the current wave data, forcing it to be synthesized again on the next play
-		 */
-		public function deleteCache():void
-		{
-			_cachedWave = null;
-			_cachedMutations = null;
-			
 			stop();
+			
+			if (_cachingAsync) return;
+			
+			_cachedMutationsNum = mutationsNum;
+			_cachedMutations = new Vector.<ByteArray>();
+			
+			if (Boolean(callback))
+			{
+				_mutation = true;
+				
+				_cachingMutation = 0;
+				_cachedMutation = new ByteArray;
+				_cachedMutations[0] = _cachedMutation;
+				_cachedMutationAmount = mutationAmount;
+				
+				_original = _params.clone();
+				_params.mutate(mutationAmount);
+				
+				reset(true);
+				
+				_cachingAsync = true;
+				_cacheTimePerFrame = maxTimePerFrame;
+				
+				_cachedCallback = callback;
+				
+				if (!_cacheTicker) _cacheTicker = new Shape;
+				
+				_cacheTicker.addEventListener(Event.ENTER_FRAME, cacheSection);
+			}
+			else
+			{
+				var original:SfxrParams = _params.clone();
+				
+				for(var i:uint = 0; i < _cachedMutationsNum; i++)
+				{
+					_params.mutate(mutationAmount);
+					cacheSound();
+					_cachedMutations[i] = _cachedWave;
+					_params.copyFrom(original);
+				}
+				
+				_cachingMutation = -1;
+			}
+		}
+		
+		/**
+		 * Performs the asynchronous cache, working for up to _cacheTimePerFrame milliseconds per frame
+		 * @param	e	enterFrame event
+		 */
+		private function cacheSection(e:Event):void 
+		{
+			var cacheStartTime:uint = getTimer();
+			
+			while (getTimer() - cacheStartTime < _cacheTimePerFrame)
+			{
+				if (_mutation)
+				{
+					_waveDataPos = _cachedMutation.position;
+					
+					if (synthWave(_cachedMutation, 500, true))
+					{
+						_params.copyFrom(_original);
+						_params.mutate(_cachedMutationAmount);
+						reset(true);
+						
+						_cachingMutation++;
+						_cachedMutation = new ByteArray;
+						_cachedMutations[_cachingMutation] = _cachedMutation;
+						
+						if (_cachingMutation >= _cachedMutationsNum)
+						{
+							_cachingMutation = -1;
+							_cachingAsync = false;
+							
+							_params.paramsDirty = false;
+							
+							_cachedCallback();
+							_cachedCallback = null;
+							_cacheTicker.removeEventListener(Event.ENTER_FRAME, cacheSection);
+							
+							return;
+						}
+					}
+				}
+				else
+				{
+					_waveDataPos = _cachedWave.position;
+					
+					if (synthWave(_cachedWave, 500, true))
+					{
+						_cachingNormal = false;
+						_cachingAsync = false;
+						
+						_cachedCallback();
+						_cachedCallback = null;
+						_cacheTicker.removeEventListener(Event.ENTER_FRAME, cacheSection);
+						
+						return;
+					}
+				}
+			}
 		}
 		
 		//--------------------------------------------------------------------------
@@ -366,118 +520,85 @@
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Makes sure all settings values are within the correct range
-		 */
-		public function validate():void
-		{
-			if (waveType > 3) waveType = 0;
-			if (sampleRate != 22050) sampleRate = 44100;
-			if (bitDepth != 8) bitDepth = 16;
-			
-			masterVolume = 			clamp1(masterVolume);
-			attackTime =  			clamp1(attackTime);
-			sustainTime =  			clamp1(sustainTime);
-			sustainPunch =  		clamp1(sustainPunch);
-			decayTime =  			clamp1(decayTime);
-			startFrequency =  		clamp1(startFrequency);
-			minFrequency =  		clamp1(minFrequency);
-			slide =  				clamp2(slide);
-			deltaSlide =  			clamp2(deltaSlide);
-			vibratoDepth =  		clamp1(vibratoDepth);
-			vibratoSpeed =  		clamp1(vibratoSpeed);
-			changeAmount =  		clamp2(changeAmount);
-			changeSpeed =  			clamp1(changeSpeed);
-			squareDuty =  			clamp1(squareDuty);
-			dutySweep =  			clamp2(dutySweep);
-			repeatSpeed =  			clamp1(repeatSpeed);
-			phaserOffset =  		clamp2(phaserOffset);
-			phaserSweep =  			clamp2(phaserSweep);
-			lpFilterCutoff =  		clamp1(lpFilterCutoff);
-			lpFilterCutoffSweep =  	clamp2(lpFilterCutoffSweep);
-			lpFilterResonance =  	clamp1(lpFilterResonance);
-			hpFilterCutoff =  		clamp1(hpFilterCutoff);
-			hpFilterCutoffSweep =  	clamp2(hpFilterCutoffSweep);
-		}
-		
-		/**
-		 * Clams a value to betwen 0 and 1
-		 * @param	value	Input value
-		 * @return			The value clamped between 0 and 1
-		 */
-		private function clamp1(value:Number):Number { return (value > 1.0) ? 1.0 : ((value < 0.0) ? 0.0 : value); }
-		
-		/**
-		 * Clams a value to betwen -1 and 1
-		 * @param	value	Input value
-		 * @return			The value clamped between -1 and 1
-		 */
-		private function clamp2(value:Number):Number { return (value > 1.0) ? 1.0 : ((value < -1.0) ? -1.0 : value); }
-		
-		/**
-		 * Resets the runing variables
+		 * Resets the runing variables from the params
 		 * Used once at the start (total reset) and for the repeat effect (partial reset)
 		 * @param	totalReset	If the reset is total
 		 */
 		private function reset(totalReset:Boolean):void
 		{
-			_period = 100.0 / (startFrequency * startFrequency + 0.001);
-			_maxPeriod = 100.0 / (minFrequency * minFrequency + 0.001);
+			// Shorter reference
+			var p:SfxrParams = _params;
 			
-			_slide = 1.0 - slide * slide * slide * 0.01;
-			_deltaSlide = -deltaSlide * deltaSlide * deltaSlide * 0.000001;
+			_period = 100.0 / (p.startFrequency * p.startFrequency + 0.001);
+			_maxPeriod = 100.0 / (p.minFrequency * p.minFrequency + 0.001);
 			
-			_squareDuty = 0.5 - squareDuty * 0.5;
-			_dutySweep = -dutySweep * 0.00005;
+			_slide = 1.0 - p.slide * p.slide * p.slide * 0.01;
+			_deltaSlide = -p.deltaSlide * p.deltaSlide * p.deltaSlide * 0.000001;
 			
-			if (changeAmount > 0.0) _changeAmount = 1.0 - changeAmount * changeAmount * 0.9;
-			else 					_changeAmount = 1.0 + changeAmount * changeAmount * 10.0;
+			if (p.waveType == 0)
+			{
+				_squareDuty = 0.5 - p.squareDuty * 0.5;
+				_dutySweep = -p.dutySweep * 0.00005;
+			}
+			
+			if (p.changeAmount > 0.0) 	_changeAmount = 1.0 - p.changeAmount * p.changeAmount * 0.9;
+			else 						_changeAmount = 1.0 + p.changeAmount * p.changeAmount * 10.0;
 			
 			_changeTime = 0;
 			
-			if(changeSpeed == 1.0) 	_changeLimit = 0;
-			else 					_changeLimit = (1.0 - changeSpeed) * (1.0 - changeSpeed) * 20000 + 32;
+			if(p.changeSpeed == 1.0) 	_changeLimit = 0;
+			else 						_changeLimit = (1.0 - p.changeSpeed) * (1.0 - p.changeSpeed) * 20000 + 32;
 			
 			if(totalReset)
 			{
-				_masterVolume = masterVolume * masterVolume;
+				p.paramsDirty = false;
 				
-				if (sustainTime < 0.01) sustainTime = 0.01;
+				_masterVolume = p.masterVolume * p.masterVolume;
 				
-				var totalTime:Number = attackTime + sustainTime + decayTime;
+				_waveType = p.waveType;
+				
+				if (p.sustainTime < 0.01) p.sustainTime = 0.01;
+				
+				var totalTime:Number = p.attackTime + p.sustainTime + p.decayTime;
 				if (totalTime < 0.18) 
 				{
 					var multiplier:Number = 0.18 / totalTime;
-					attackTime *= multiplier;
-					sustainTime *= multiplier;
-					decayTime *= multiplier;
+					p.attackTime *= multiplier;
+					p.sustainTime *= multiplier;
+					p.decayTime *= multiplier;
 				}
+				
+				_sustainPunch = p.sustainPunch;
 				
 				_phase = 0;
 				
-				_filters = lpFilterCutoff != 1.0 || hpFilterCutoff != 0.0;
+				_minFreqency = p.minFrequency;
+				
+				_filters = p.lpFilterCutoff != 1.0 || p.hpFilterCutoff != 0.0;
 				
 				_lpFilterPos = 0.0;
 				_lpFilterDeltaPos = 0.0;
-				_lpFilterCutoff = lpFilterCutoff * lpFilterCutoff * lpFilterCutoff * 0.1;
-				_lpFilterDeltaCutoff = 1.0 + lpFilterCutoffSweep * 0.0001;
-				_lpFilterDamping = 5.0 / (1.0 + lpFilterResonance * lpFilterResonance * 20.0) * (0.01 + _lpFilterCutoff)
+				_lpFilterCutoff = p.lpFilterCutoff * p.lpFilterCutoff * p.lpFilterCutoff * 0.1;
+				_lpFilterDeltaCutoff = 1.0 + p.lpFilterCutoffSweep * 0.0001;
+				_lpFilterDamping = 5.0 / (1.0 + p.lpFilterResonance * p.lpFilterResonance * 20.0) * (0.01 + _lpFilterCutoff);
 				if (_lpFilterDamping > 0.8) _lpFilterDamping = 0.8;
 				_lpFilterDamping = 1.0 - _lpFilterDamping;
+				_lpFilterOn = p.lpFilterCutoff != 1.0;
 				
 				_hpFilterPos = 0.0;
-				_hpFilterCutoff = hpFilterCutoff * hpFilterCutoff * 0.1;
-				_hpFilterDeltaCutoff = 1.0 + hpFilterCutoffSweep * 0.0003;
+				_hpFilterCutoff = p.hpFilterCutoff * p.hpFilterCutoff * 0.1;
+				_hpFilterDeltaCutoff = 1.0 + p.hpFilterCutoffSweep * 0.0003;
 				
 				_vibratoPhase = 0.0;
-				_vibratoSpeed = vibratoSpeed * vibratoSpeed * 0.01;
-				_vibratoAmplitude = vibratoDepth * 0.5;
+				_vibratoSpeed = p.vibratoSpeed * p.vibratoSpeed * 0.01;
+				_vibratoAmplitude = p.vibratoDepth * 0.5;
 				
 				_envelopeVolume = 0.0;
 				_envelopeStage = 0;
 				_envelopeTime = 0;
-				_envelopeLength0 = attackTime * attackTime * 100000.0;
-				_envelopeLength1 = sustainTime * sustainTime * 100000.0;
-				_envelopeLength2 = decayTime * decayTime * 100000.0 + 10;
+				_envelopeLength0 = p.attackTime * p.attackTime * 100000.0;
+				_envelopeLength1 = p.sustainTime * p.sustainTime * 100000.0;
+				_envelopeLength2 = p.decayTime * p.decayTime * 100000.0 + 10;
 				_envelopeLength = _envelopeLength0;
 				_envelopeFullLength = _envelopeLength0 + _envelopeLength1 + _envelopeLength2;
 				
@@ -485,11 +606,11 @@
 				_envelopeOverLength1 = 1.0 / _envelopeLength1;
 				_envelopeOverLength2 = 1.0 / _envelopeLength2;
 				
-				_phaser = phaserOffset != 0.0 || phaserSweep != 0.0;
+				_phaser = p.phaserOffset != 0.0 || p.phaserSweep != 0.0;
 				
-				_phaserOffset = phaserOffset * phaserOffset * 1020.0;
-				if(phaserOffset < 0.0) _phaserOffset = -_phaserOffset;
-				_phaserDeltaOffset = phaserSweep * phaserSweep * phaserSweep * 0.2;
+				_phaserOffset = p.phaserOffset * p.phaserOffset * 1020.0;
+				if(p.phaserOffset < 0.0) _phaserOffset = -_phaserOffset;
+				_phaserDeltaOffset = p.phaserSweep * p.phaserSweep * p.phaserSweep * 0.2;
 				_phaserPos = 0;
 				
 				if(!_phaserBuffer) _phaserBuffer = new Vector.<Number>(1024, true);
@@ -500,8 +621,8 @@
 				
 				_repeatTime = 0;
 				
-				if (repeatSpeed == 0.0) _repeatLimit = 0;
-				else 					_repeatLimit = int((1.0-repeatSpeed) * (1.0-repeatSpeed) * 20000) + 32;
+				if (p.repeatSpeed == 0.0) 	_repeatLimit = 0;
+				else 						_repeatLimit = int((1.0-p.repeatSpeed) * (1.0-p.repeatSpeed) * 20000) + 32;
 			}
 		}
 		
@@ -509,8 +630,9 @@
 		 * Writes the wave to the supplied buffer ByteArray
 		 * @param	buffer		A ByteArray to write the wave to
 		 * @param	waveData	If the wave should be written for the waveData
+		 * @return				If the wave is finished
 		 */
-		private function synthWave(buffer:ByteArray, length:uint, waveData:Boolean = false):void
+		private function synthWave(buffer:ByteArray, length:uint, waveData:Boolean = false, sampleRate:uint = 44100, bitDepth:uint = 16):Boolean
 		{
 			_finished = false;
 			
@@ -519,8 +641,9 @@
 			
 			for(var i:uint = 0; i < length; i++)
 			{
-				if (_finished) return;
+				if (_finished) return true;
 				
+				// Repeats every _repeatLimit times, partially resetting the sound parameters
 				if(_repeatLimit != 0)
 				{
 					if(++_repeatTime >= _repeatLimit)
@@ -530,6 +653,7 @@
 					}
 				}
 				
+				// If _changeLimit is reached, shifts the pitch
 				if(_changeLimit != 0)
 				{
 					if(++_changeTime >= _changeLimit)
@@ -539,17 +663,20 @@
 					}
 				}
 				
+				// Acccelerate and apply slide
 				_slide += _deltaSlide;
 				_period *= _slide;
 				
+				// Checks for frequency getting too low, and stops the sound if a minFrequency was set
 				if(_period > _maxPeriod)
 				{
 					_period = _maxPeriod;
-					if(minFrequency > 0.0) _finished = true;
+					if(_minFreqency > 0.0) _finished = true;
 				}
 				
 				_periodTemp = _period;
 				
+				// Applies the vibrato effect
 				if(_vibratoAmplitude > 0.0)
 				{
 					_vibratoPhase += _vibratoSpeed;
@@ -559,10 +686,15 @@
 				_periodTemp = int(_periodTemp);
 				if(_periodTemp < 8) _periodTemp = 8;
 				
-				_squareDuty += _dutySweep;
-					 if(_squareDuty < 0.0) _squareDuty = 0.0;
-				else if(_squareDuty > 0.5) _squareDuty = 0.5;
+				// Sweeps the square duty
+				if (_waveType == 0)
+				{
+					_squareDuty += _dutySweep;
+						 if(_squareDuty < 0.0) _squareDuty = 0.0;
+					else if (_squareDuty > 0.5) _squareDuty = 0.5;
+				}
 				
+				// Moves through the different stages of the volume envelope
 				if(++_envelopeTime > _envelopeLength)
 				{
 					_envelopeTime = 0;
@@ -574,14 +706,16 @@
 					}
 				}
 				
+				// Sets the volume based on the position in the envelope
 				switch(_envelopeStage)
 				{
 					case 0: _envelopeVolume = _envelopeTime * _envelopeOverLength0; 									break;
-					case 1: _envelopeVolume = 1.0 + (1.0 - _envelopeTime * _envelopeOverLength1) * 2.0 * sustainPunch; 	break;
+					case 1: _envelopeVolume = 1.0 + (1.0 - _envelopeTime * _envelopeOverLength1) * 2.0 * _sustainPunch; break;
 					case 2: _envelopeVolume = 1.0 - _envelopeTime * _envelopeOverLength2; 								break;
 					case 3: _envelopeVolume = 0.0; _finished = true; 													break;
 				}
 				
+				// Moves the phaser offset
 				if (_phaser)
 				{
 					_phaserOffset += _phaserDeltaOffset;
@@ -590,6 +724,7 @@
 					else if (_phaserInt > 1023) _phaserInt = 1023;
 				}
 				
+				// Moves the high-pass filter cutoff
 				if(_filters && _hpFilterDeltaCutoff != 0.0)
 				{
 					_hpFilterCutoff *= _hpFilterDeltaCutoff;
@@ -600,27 +735,49 @@
 				_superSample = 0.0;
 				for(var j:int = 0; j < 8; j++)
 				{
+					// Cycles through the period
 					_phase++;
 					if(_phase >= _periodTemp)
 					{
-						_phase = _phase % _periodTemp;
-						if(waveType == 3) 
+						_phase = _phase - _periodTemp;
+						
+						// Generates new random noise for this period
+						if(_waveType == 3) 
 						{ 
 							for(var n:uint = 0; n < 32; n++) _noiseBuffer[n] = Math.random() * 2.0 - 1.0;
 						}
 					}
 					
-					_pos = Number(_phase) / _periodTemp;
-					
-					switch(waveType)
+					// Gets the sample from the oscillator
+					switch(_waveType)
 					{
-						case 0: _sample = (_pos < _squareDuty) ? 0.5 : -0.5; 					break;
-						case 1: _sample = 1.0 - _pos * 2.0;										break;
-						case 2: _sample = Math.sin(_pos * Math.PI * 2.0);						break;
-						case 3: _sample = _noiseBuffer[uint(_phase * 32 / int(_periodTemp))];	break;
+						case 0: // Square wave
+						{
+							_sample = ((_phase / _periodTemp) < _squareDuty) ? 0.5 : -0.5;
+							break;
+						}
+						case 1: // Saw wave
+						{
+							_sample = 1.0 - (_phase / _periodTemp) * 2.0;
+							break;
+						}
+						case 2: // Sine wave (fast and accurate approx)
+						{
+							_pos = _phase / _periodTemp;
+							_pos = _pos > 0.5 ? (_pos - 1.0) * 6.28318531 : _pos * 6.28318531;
+							_sample = _pos < 0 ? 1.27323954 * _pos + .405284735 * _pos * _pos : 1.27323954 * _pos - 0.405284735 * _pos * _pos;
+							_sample = _sample < 0 ? .225 * (_sample *-_sample - _sample) + _sample : .225 * (_sample * _sample - _sample) + _sample;
+							
+							break;
+						}
+						case 3: // Noise
+						{
+							_sample = _noiseBuffer[uint(_phase * 32 / int(_periodTemp))];
+							break;
+						}
 					}
 					
-					
+					// Applies the low and high pass filters
 					if (_filters)
 					{
 						_lpFilterOldPos = _lpFilterPos;
@@ -628,7 +785,7 @@
 							 if(_lpFilterCutoff < 0.0) _lpFilterCutoff = 0.0;
 						else if(_lpFilterCutoff > 0.1) _lpFilterCutoff = 0.1;
 						
-						if(lpFilterCutoff != 1.0)
+						if(_lpFilterOn)
 						{
 							_lpFilterDeltaPos += (_sample - _lpFilterPos) * _lpFilterCutoff;
 							_lpFilterDeltaPos *= _lpFilterDamping;
@@ -646,6 +803,7 @@
 						_sample = _hpFilterPos;
 					}
 					
+					// Applies the phaser effect
 					if (_phaser)
 					{
 						_phaserBuffer[_phaserPos&1023] = _sample;
@@ -656,22 +814,26 @@
 					_superSample += _sample;
 				}
 				
+				// Averages out the super samples and applies volumes
 				_superSample = _masterVolume * _envelopeVolume * _superSample * 0.125;
 				
+				// Clipping if too loud
 					 if(_superSample > 1.0) 	_superSample = 1.0;
 				else if(_superSample < -1.0) 	_superSample = -1.0;
 				
 				if(waveData)
 				{
+					// Writes same value to left and right channels
 					buffer.writeFloat(_superSample);
 					buffer.writeFloat(_superSample);
 				}
 				else
 				{
 					_bufferSample += _superSample;
-				
+					
 					_sampleCount++;
 					
+					// Writes mono wave data to the .wav format
 					if(sampleRate == 44100 || _sampleCount == 2)
 					{
 						_bufferSample /= _sampleCount;
@@ -684,99 +846,10 @@
 					}
 				}
 			}
+			
+			return false;
 		}
 		
-		//--------------------------------------------------------------------------
-		//	
-		//  Settings String Methods
-		//
-		//--------------------------------------------------------------------------
-		
-		/**
-		 * Returns a string representation of the parameters for copy/paste sharing
-		 * @return	A comma-delimited list of parameter values
-		 */
-		public function getSettingsString():String
-		{
-			var string:String = String(waveType);
-			string += "," + to4DP(attackTime) + 			"," + to4DP(sustainTime) 
-					+ "," + to4DP(sustainPunch) + 			"," + to4DP(decayTime) 
-					+ "," + to4DP(startFrequency) + 		"," + to4DP(minFrequency)
-					+ "," + to4DP(slide) + 					"," + to4DP(deltaSlide)
-					+ "," + to4DP(vibratoDepth) + 			"," + to4DP(vibratoSpeed)
-					+ "," + to4DP(changeAmount) + 			"," + to4DP(changeSpeed)
-					+ "," + to4DP(squareDuty) + 			"," + to4DP(dutySweep)
-					+ "," + to4DP(repeatSpeed) + 			"," + to4DP(phaserOffset)
-					+ "," + to4DP(phaserSweep) + 			"," + to4DP(lpFilterCutoff)
-					+ "," + to4DP(lpFilterCutoffSweep) + 	"," + to4DP(lpFilterResonance)
-					+ "," + to4DP(hpFilterCutoff)+ 			"," + to4DP(hpFilterCutoffSweep)
-					+ "," + to4DP(masterVolume);		
-			
-			return string;
-		}
-		
-		/**
-		 * Returns the number as a string to 4 decimal places
-		 * @param	value	Number to convert
-		 * @return			Number to 4dp as a string
-		 */
-		private function to4DP(value:Number):String
-		{
-			if (value < 0.0001 && value > -0.0001) return "";
-			
-			var string:String = String(value);
-			var split:Array = string.split(".");
-			if (split.length == 1) 	return string;
-			else 					
-			{
-				var out:String = split[0] + "." + split[1].substr(0, 4);
-				while (out.substr(out.length - 1, 1) == "0") out = out.substr(0, out.length - 1);
-				
-				return out;
-			}
-		}
-		
-		/**
-		 * Parses a settings string into the parameters
-		 * @param	string	Settings string to parse
-		 * @return			If the string successfully parsed
-		 */
-		public function setSettingsString(string:String):Boolean
-		{
-			deleteCache();
-			var values:Array = string.split(",");
-			
-			if (values.length != 24) return false;
-			
-			waveType = 				uint(values[0]) || 0;
-			attackTime =  			Number(values[1]) || 0;
-			sustainTime =  			Number(values[2]) || 0;
-			sustainPunch =  		Number(values[3]) || 0;
-			decayTime =  			Number(values[4]) || 0;
-			startFrequency =  		Number(values[5]) || 0;
-			minFrequency =  		Number(values[6]) || 0;
-			slide =  				Number(values[7]) || 0;
-			deltaSlide =  			Number(values[8]) || 0;
-			vibratoDepth =  		Number(values[9]) || 0;
-			vibratoSpeed =  		Number(values[10]) || 0;
-			changeAmount =  		Number(values[11]) || 0;
-			changeSpeed =  			Number(values[12]) || 0;
-			squareDuty =  			Number(values[13]) || 0;
-			dutySweep =  			Number(values[14]) || 0;
-			repeatSpeed =  			Number(values[15]) || 0;
-			phaserOffset =  		Number(values[16]) || 0;
-			phaserSweep =  			Number(values[17]) || 0;
-			lpFilterCutoff =  		Number(values[18]) || 0;
-			lpFilterCutoffSweep =  	Number(values[19]) || 0;
-			lpFilterResonance =  	Number(values[20]) || 0;
-			hpFilterCutoff =  		Number(values[21]) || 0;
-			hpFilterCutoffSweep =  	Number(values[22]) || 0;
-			masterVolume = 			Number(values[23]) || 0;
-			
-			validate();
-			
-			return true;
-		}   
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -786,13 +859,18 @@
 		
 		/**
 		 * Returns a ByteArray of the wave in the form of a .wav file, ready to be saved out
-		 * @return	Wave in a .wav file
+		 * @param	sampleRate		Sample rate to generate the .wav at	
+		 * @param	bitDepth		Bit depth to generate the .wav at	
+		 * @return					Wave in a .wav file
 		 */
-		public function getWavFile():ByteArray
+		public function getWavFile(sampleRate:uint = 44100, bitDepth:uint = 16):ByteArray
 		{
 			stop();
 			
 			reset(true);
+			
+			if (sampleRate != 44100) sampleRate = 22050;
+			if (bitDepth != 16) bitDepth = 8;
 			
 			var soundLength:uint = _envelopeFullLength;
 			if (bitDepth == 16) soundLength *= 2;
@@ -830,65 +908,11 @@
 			wav.endian = Endian.LITTLE_ENDIAN;
 			wav.writeUnsignedInt(soundLength);		// Chunk Data Size
 			
-			synthWave(wav, _envelopeFullLength);
+			synthWave(wav, _envelopeFullLength, false, sampleRate, bitDepth);
 			
 			wav.position = 0;
 			
 			return wav;
 		}
-		
-		//--------------------------------------------------------------------------
-		//	
-		//  Copying Methods
-		//
-		//--------------------------------------------------------------------------
-		
-		/**
-		 * Returns a copy of this SfxrSynth with all settings duplicated
-		 * @return	A copy of this SfxrSynth
-		 */
-		public function clone():SfxrSynth
-		{
-			var out:SfxrSynth = new SfxrSynth();
-			out.copyFrom(this, false);		
-			
-			return out;
-		}
-		
-		/**
-		 * Copies parameters from another instance
-		 * @param	synth	Instance to copy parameters from
-		 */
-		public function copyFrom(synth:SfxrSynth, shouldDeleteCache:Boolean = true):void
-		{
-			if(shouldDeleteCache) deleteCache();
-			
-			waveType = 				synth.waveType;
-			attackTime =            synth.attackTime;
-			sustainTime =           synth.sustainTime;
-			sustainPunch =          synth.sustainPunch;
-			decayTime =             synth.decayTime;
-			startFrequency =        synth.startFrequency;
-			minFrequency =          synth.minFrequency;
-			slide =                 synth.slide;
-			deltaSlide =            synth.deltaSlide;
-			vibratoDepth =          synth.vibratoDepth;
-			vibratoSpeed =          synth.vibratoSpeed;
-			changeAmount =          synth.changeAmount;
-			changeSpeed =           synth.changeSpeed;
-			squareDuty =            synth.squareDuty;
-			dutySweep =             synth.dutySweep;
-			repeatSpeed =           synth.repeatSpeed;
-			phaserOffset =          synth.phaserOffset;
-			phaserSweep =           synth.phaserSweep;
-			lpFilterCutoff =        synth.lpFilterCutoff;
-			lpFilterCutoffSweep =   synth.lpFilterCutoffSweep;
-			lpFilterResonance =     synth.lpFilterResonance;
-			hpFilterCutoff =        synth.hpFilterCutoff;
-			hpFilterCutoffSweep =   synth.hpFilterCutoffSweep;
-			masterVolume = 			synth.masterVolume;
-			
-			validate();
-		}                        
 	}
 }
