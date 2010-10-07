@@ -7,7 +7,7 @@
     <movie path="bin\as3sfxr.swf" />
     <movie fps="25" />
     <movie width="640" />
-    <movie height="485" />
+    <movie height="500" />
     <movie version="10" />
     <movie background="#C0B090" />
   </output>
@@ -26,6 +26,7 @@
     <option optimize="False" />
     <option showActionScriptWarnings="True" />
     <option showBindingWarnings="True" />
+    <option showInvalidCSS="True" />
     <option showDeprecationWarnings="True" />
     <option showUnusedTypeSelectorWarnings="True" />
     <option strict="True" />
