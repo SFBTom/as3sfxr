@@ -32,12 +32,13 @@
 	import flash.utils.Dictionary;
 	import flash.utils.Endian;
 	import ui.TinyButton;
+	import ui.TinyCheckbox;
 	import ui.TinySlider;
 	
 	/**
 	 * SfxrApp
 	 * 
-	 * Copyright 2009 Thomas Vian
+	 * Copyright 2010 Thomas Vian
 	 *
 	 * Licensed under the Apache License, Version 2.0 (the "License");
 	 * you may not use this file except in compliance with the License.
@@ -53,7 +54,7 @@
 	 * 
 	 * @author Thomas Vian
 	 */
-	[SWF(width='640', height='480', backgroundColor='#C0B090', frameRate='25')]
+	[SWF(width='640', height='500', backgroundColor='#C0B090', frameRate='25')]
 	public class SfxrApp extends Sprite
 	{
 		//--------------------------------------------------------------------------
@@ -61,13 +62,23 @@
 		//  Properties
 		//
 		//--------------------------------------------------------------------------
+		
 		[Embed(source = "assets/amiga4ever.ttf", fontName = "Amiga4Ever", mimeType = "application/x-font", embedAsCFF = "false")]
 		private var Amiga4Ever:Class;				// Pixel font, original was in a tga file
 		
-		[Embed(source = "assets/logo.png")]
-		private var Logo:Class;						// SFB09 logo, for the bottom left corner
+		[Embed(source = "assets/as3sfxr.png")]
+		private var As3sfxrLogo:Class;				// as3sfxr logo, for the top right
 		
-		private var _synth:SfxrSynth;				// synthesizer instance
+		[Embed(source = "assets/sfbtom.png")]
+		private var SfbtomLogo:Class;				// SFBTOM logo, for the bottom left corner
+		
+		private var _synth:SfxrSynth;				// Synthesizer instance
+		
+		private var _sampleRate:uint = 44100;		// Sample rate to export .wav at
+		private var _bitDepth:uint = 16;			// Bit depth to export .wav at
+		
+		private var _playOnChange:Boolean = true;	// If the sound should be played after releasing a slider or changing type
+		private var _mutePlayOnChange:Boolean;		// If the change playing should be muted because of non-user changes
 		
 		private var _propLookup:Dictionary;			// Look up for property names using a slider key
 		private var _sliderLookup:Object;			// Look up for sliders using a property name key
@@ -76,7 +87,7 @@
 		
 		private var _back:TinyButton;				// Button to skip back a sound
 		private var _forward:TinyButton;			// Button to skip forward a sound
-		private var _history:Vector.<SfxrSynth>;	// List of generated settings
+		private var _history:Vector.<SfxrParams>;	// List of generated settings
 		private var _historyPos:int;				// Current history position
 		
 		private var _copyPaste:TextField;			// Input TextField for the settings
@@ -117,15 +128,15 @@
 			removeEventListener(Event.ADDED_TO_STAGE, init);
 			
 			_synth = new SfxrSynth();
-			SfxrGenerator.randomize(_synth);
+			_synth.params.randomize();
 			
 			_propLookup = new Dictionary();
 			_sliderLookup = {};
 			_waveformLookup = [];
 			_squareLookup = [];
 			
-			_history = new Vector.<SfxrSynth>();
-			_history.push(_synth);
+			_history = new Vector.<SfxrParams>();
+			_history.push(_synth.params);
 			
 			drawGraphics();
 			drawButtons();
@@ -136,12 +147,6 @@
 			updateButtons();
 			updateCopyPaste();
 		}
-		
-		//--------------------------------------------------------------------------
-		//	
-		//  Keyboard Methods
-		//
-		//--------------------------------------------------------------------------
 		
 		//--------------------------------------------------------------------------
 		//	
@@ -162,12 +167,12 @@
 			addButton("HIT/HURT", 		clickHitHurt, 		4, 152);
 			addButton("JUMP", 			clickJump, 			4, 182);
 			addButton("BLIP/SELECT", 	clickBlipSelect, 	4, 212);
-			addButton("MUTATE", 		clickMutate, 		4, 324);
-			addButton("RANDOMIZE", 		clickRandomize, 	4, 354, 2);
+			addButton("MUTATE", 		clickMutate, 		4, 339);
+			addButton("RANDOMIZE", 		clickRandomize, 	4, 369, 2);
 			
 			// History
-			_back = 	addButton("BACK", 		clickBack, 		4, 384);
-			_forward = 	addButton("FORWARD", 	clickForward, 	4, 414);
+			_back = 	addButton("BACK", 		clickBack, 		4, 399);
+			_forward = 	addButton("FORWARD", 	clickForward, 	4, 429);
 			_back.enabled = false;
 			_forward.enabled = false;
 			
@@ -178,12 +183,12 @@
 			addButton("NOISE", 			clickNoise, 		490, 28, 1, true);
 			
 			// Play / save / export
-			addButton("PLAY SOUND", 	clickPlaySound, 	490, 228);
-			addButton("LOAD SOUND", 	clickLoadSound, 	490, 288);
-			addButton("SAVE SOUND", 	clickSaveSound, 	490, 318);
-			addButton("EXPORT .WAV", 	clickExportWav, 	490, 378, 3);
-			addButton("44100 HZ", 		clickSampleRate, 	490, 408);
-			addButton("16-BIT", 		clickBitDepth, 		490, 438);
+			addButton("PLAY SOUND", 	clickPlaySound, 	490, 271);
+			addButton("LOAD SOUND", 	clickLoadSound, 	490, 321);
+			addButton("SAVE SOUND", 	clickSaveSound, 	490, 351);
+			addButton("EXPORT .WAV", 	clickExportWav, 	490, 401, 3);
+			addButton("44100 HZ", 		clickSampleRate, 	490, 431);
+			addButton("16-BIT", 		clickBitDepth, 		490, 461);
 		}
 		
 		/**
@@ -213,7 +218,11 @@
 		 */
 		private function updateButtons():void
 		{
-			selectedSwitch(_waveformLookup[_synth.waveType]);
+			_mutePlayOnChange = true;
+			
+			selectedSwitch(_waveformLookup[_synth.params.waveType]);
+			
+			_mutePlayOnChange = false;
 		}
 		
 		//--------------------------------------------------------------------------
@@ -229,7 +238,7 @@
 		private function clickPickupCoin(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generatePickupCoin(_synth);
+			_synth.params.generatePickupCoin();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -243,7 +252,7 @@
 		private function clickLaserShoot(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generateLaserShoot(_synth);
+			_synth.params.generateLaserShoot();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -257,7 +266,7 @@
 		private function clickExplosion(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generateExplosion(_synth);
+			_synth.params.generateExplosion();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -271,7 +280,7 @@
 		private function clickPowerup(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generatePowerup(_synth);
+			_synth.params.generatePowerup();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -285,7 +294,7 @@
 		private function clickHitHurt(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generateHitHurt(_synth);
+			_synth.params.generateHitHurt();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -299,7 +308,7 @@
 		private function clickJump(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generateJump(_synth);
+			_synth.params.generateJump();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -313,7 +322,7 @@
 		private function clickBlipSelect(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.generateBlipSelect(_synth);
+			_synth.params.generateBlipSelect();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -327,7 +336,7 @@
 		private function clickMutate(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.mutate(_synth);
+			_synth.params.mutate();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -341,7 +350,7 @@
 		private function clickRandomize(button:TinyButton):void
 		{
 			addToHistory();
-			SfxrGenerator.randomize(_synth);
+			_synth.params.randomize();
 			updateSliders();
 			updateButtons();
 			updateCopyPaste();
@@ -365,7 +374,7 @@
 			if(_historyPos < _history.length - 1) 	_forward.enabled = true;
 			
 			_synth.stop();
-			_synth = _history[_historyPos];
+			_synth.params = _history[_historyPos];
 			
 			updateSliders();
 			updateButtons();
@@ -385,7 +394,7 @@
 			if(_historyPos == _history.length - 1) 	_forward.enabled = false;
 			
 			_synth.stop();
-			_synth = _history[_historyPos];
+			_synth.params = _history[_historyPos];
 			
 			updateSliders();
 			updateButtons();
@@ -401,9 +410,9 @@
 		private function addToHistory():void
 		{
 			_historyPos++;
-			_synth = _synth.clone();
+			_synth.params = _synth.params.clone();
 			_history = _history.slice(0, _historyPos);
-			_history.push(_synth);
+			_history.push(_synth.params);
 			
 			_back.enabled = true;
 			_forward.enabled = false;
@@ -421,10 +430,10 @@
 		 */
 		private function clickSquarewave(button:TinyButton):void
 		{
-			_synth.waveType = 0;
-			_synth.deleteCache();
+			_synth.params.waveType = 0;
 			selectedSwitch(button);
 			updateCopyPaste();
+			if (_playOnChange && !_mutePlayOnChange) _synth.play();
 		}
 		
 		/**
@@ -433,10 +442,10 @@
 		 */
 		private function clickSawtooth(button:TinyButton):void
 		{
-			_synth.waveType = 1;
-			_synth.deleteCache();
+			_synth.params.waveType = 1;
 			selectedSwitch(button);
 			updateCopyPaste();
+			if (_playOnChange && !_mutePlayOnChange) _synth.play();
 		}
 		
 		/**
@@ -445,10 +454,10 @@
 		 */
 		private function clickSinewave(button:TinyButton):void
 		{
-			_synth.waveType = 2;
-			_synth.deleteCache();
+			_synth.params.waveType = 2;
 			selectedSwitch(button);
 			updateCopyPaste();
+			if (_playOnChange && !_mutePlayOnChange) _synth.play();
 		}
 		
 		/**
@@ -457,10 +466,10 @@
 		 */
 		private function clickNoise(button:TinyButton):void
 		{
-			_synth.waveType = 3;
-			_synth.deleteCache();
+			_synth.params.waveType = 3;
 			selectedSwitch(button);
 			updateCopyPaste();
+			if (_playOnChange && !_mutePlayOnChange) _synth.play();
 		}
 		
 		/**
@@ -478,7 +487,7 @@
 			
 			for(i = 0; i < 2; i++)
 			{
-				_squareLookup[i].dimLabel = _synth.waveType != 0;
+				_squareLookup[i].dimLabel = _synth.params.waveType != 0;
 			}
 		}
 		
@@ -555,7 +564,7 @@
 		 */
 		private function clickExportWav(button:TinyButton):void
 		{
-			var file:ByteArray = _synth.getWavFile();
+			var file:ByteArray = _synth.getWavFile(_sampleRate, _bitDepth);
 			
 			new FileReference().save(file, "sfx.wav");
 		}
@@ -566,10 +575,10 @@
 		 */
 		private function clickSampleRate(button:TinyButton):void
 		{
-			if(_synth.sampleRate == 44100) 	_synth.sampleRate = 22050;
-			else 							_synth.sampleRate = 44100;
+			if(_sampleRate == 44100) 	_sampleRate = 22050;
+			else 						_sampleRate = 44100;
 			
-			button.label = _synth.sampleRate + " HZ";
+			button.label = _sampleRate + " HZ";
 		}
 		
 		/**
@@ -578,10 +587,10 @@
 		 */
 		private function clickBitDepth(button:TinyButton):void
 		{
-			if(_synth.bitDepth == 16) 	_synth.bitDepth = 8;
-			else 						_synth.bitDepth = 16;
+			if(_bitDepth == 16) _bitDepth = 8;
+			else 				_bitDepth = 16;
 			
-			button.label = _synth.bitDepth + "-BIT";
+			button.label = _bitDepth + "-BIT";
 		}
 		
 		//--------------------------------------------------------------------------
@@ -601,39 +610,39 @@
 			file.endian = Endian.LITTLE_ENDIAN;
 			
 			file.writeInt(102);
-			file.writeInt(_synth.waveType);
-			file.writeFloat(_synth.masterVolume);
+			file.writeInt(_synth.params.waveType);
+			file.writeFloat(_synth.params.masterVolume);
 			
-			file.writeFloat(_synth.startFrequency);
-			file.writeFloat(_synth.minFrequency);
-			file.writeFloat(_synth.slide);
-			file.writeFloat(_synth.deltaSlide);
-			file.writeFloat(_synth.squareDuty);
-			file.writeFloat(_synth.dutySweep);
+			file.writeFloat(_synth.params.startFrequency);
+			file.writeFloat(_synth.params.minFrequency);
+			file.writeFloat(_synth.params.slide);
+			file.writeFloat(_synth.params.deltaSlide);
+			file.writeFloat(_synth.params.squareDuty);
+			file.writeFloat(_synth.params.dutySweep);
 			
-			file.writeFloat(_synth.vibratoDepth);
-			file.writeFloat(_synth.vibratoSpeed);
+			file.writeFloat(_synth.params.vibratoDepth);
+			file.writeFloat(_synth.params.vibratoSpeed);
 			file.writeFloat(0);
 			
-			file.writeFloat(_synth.attackTime);
-			file.writeFloat(_synth.sustainTime);
-			file.writeFloat(_synth.decayTime);
-			file.writeFloat(_synth.sustainPunch);
+			file.writeFloat(_synth.params.attackTime);
+			file.writeFloat(_synth.params.sustainTime);
+			file.writeFloat(_synth.params.decayTime);
+			file.writeFloat(_synth.params.sustainPunch);
 			
 			file.writeBoolean(false);
-			file.writeFloat(_synth.lpFilterResonance);
-			file.writeFloat(_synth.lpFilterCutoff);
-			file.writeFloat(_synth.lpFilterCutoffSweep);
-			file.writeFloat(_synth.hpFilterCutoff);
-			file.writeFloat(_synth.hpFilterCutoffSweep);
+			file.writeFloat(_synth.params.lpFilterResonance);
+			file.writeFloat(_synth.params.lpFilterCutoff);
+			file.writeFloat(_synth.params.lpFilterCutoffSweep);
+			file.writeFloat(_synth.params.hpFilterCutoff);
+			file.writeFloat(_synth.params.hpFilterCutoffSweep);
 			
-			file.writeFloat(_synth.phaserOffset);
-			file.writeFloat(_synth.phaserSweep);
+			file.writeFloat(_synth.params.phaserOffset);
+			file.writeFloat(_synth.params.phaserSweep);
 			
-			file.writeFloat(_synth.repeatSpeed);
+			file.writeFloat(_synth.params.repeatSpeed);
 			
-			file.writeFloat(_synth.changeSpeed);
-			file.writeFloat(_synth.changeAmount);
+			file.writeFloat(_synth.params.changeSpeed);
+			file.writeFloat(_synth.params.changeAmount);
 			
 			return file;
 		}
@@ -645,7 +654,6 @@
 		 */
 		public function setSettingsFile(file:ByteArray):void
 		{
-			_synth.deleteCache();
 			file.position = 0;
 			file.endian = Endian.LITTLE_ENDIAN;
 			
@@ -653,42 +661,40 @@
 			
 			if(version != 100 && version != 101 && version != 102) return;
 			
-			_synth.waveType = file.readInt();
-			_synth.masterVolume = (version == 102) ? file.readFloat() : 0.5;
+			_synth.params.waveType = file.readInt();
+			_synth.params.masterVolume = (version == 102) ? file.readFloat() : 0.5;
 			
-			_synth.startFrequency = file.readFloat();
-			_synth.minFrequency = file.readFloat();
-			_synth.slide = file.readFloat();
-			_synth.deltaSlide = (version >= 101) ? file.readFloat() : 0.0;
+			_synth.params.startFrequency = file.readFloat();
+			_synth.params.minFrequency = file.readFloat();
+			_synth.params.slide = file.readFloat();
+			_synth.params.deltaSlide = (version >= 101) ? file.readFloat() : 0.0;
 			
-			_synth.squareDuty = file.readFloat();
-			_synth.dutySweep = file.readFloat();
+			_synth.params.squareDuty = file.readFloat();
+			_synth.params.dutySweep = file.readFloat();
 			
-			_synth.vibratoDepth = file.readFloat();
-			_synth.vibratoSpeed = file.readFloat();
+			_synth.params.vibratoDepth = file.readFloat();
+			_synth.params.vibratoSpeed = file.readFloat();
 			var unusedVibratoDelay:Number = file.readFloat();
 			
-			_synth.attackTime = file.readFloat();
-			_synth.sustainTime = file.readFloat();
-			_synth.decayTime = file.readFloat();
-			_synth.sustainPunch = file.readFloat();
+			_synth.params.attackTime = file.readFloat();
+			_synth.params.sustainTime = file.readFloat();
+			_synth.params.decayTime = file.readFloat();
+			_synth.params.sustainPunch = file.readFloat();
 			
 			var unusedFilterOn:Boolean = file.readBoolean();
-			_synth.lpFilterResonance = file.readFloat();
-			_synth.lpFilterCutoff = file.readFloat();
-			_synth.lpFilterCutoffSweep = file.readFloat();
-			_synth.hpFilterCutoff = file.readFloat();
-			_synth.hpFilterCutoffSweep = file.readFloat();
+			_synth.params.lpFilterResonance = file.readFloat();
+			_synth.params.lpFilterCutoff = file.readFloat();
+			_synth.params.lpFilterCutoffSweep = file.readFloat();
+			_synth.params.hpFilterCutoff = file.readFloat();
+			_synth.params.hpFilterCutoffSweep = file.readFloat();
 			
-			_synth.phaserOffset = file.readFloat();
-			_synth.phaserSweep = file.readFloat();
+			_synth.params.phaserOffset = file.readFloat();
+			_synth.params.phaserSweep = file.readFloat();
 			
-			_synth.repeatSpeed = file.readFloat();
+			_synth.params.repeatSpeed = file.readFloat();
 			
-			_synth.changeSpeed = (version >= 101) ? file.readFloat() : 0.0;
-			_synth.changeAmount = (version >= 101) ? file.readFloat() : 0.0;
-			
-			_synth.validate();
+			_synth.params.changeSpeed = (version >= 101) ? file.readFloat() : 0.0;
+			_synth.params.changeAmount = (version >= 101) ? file.readFloat() : 0.0;
 		}
 		
 		//--------------------------------------------------------------------------
@@ -698,7 +704,7 @@
 		//--------------------------------------------------------------------------
 		
 		/**
-		 * Adds the sliders to the stage
+		 * Adds the sliders to the stage, plus single checkbox
 		 */
 		private function drawSliders():void
 		{
@@ -724,7 +730,12 @@
 			addSlider("LP FILTER RESONANCE", 	"lpFilterResonance", 	350, 412);
 			addSlider("HP FILTER CUTOFF", 		"hpFilterCutoff", 		350, 430);
 			addSlider("HP FILTER CUTOFF SWEEP", "hpFilterCutoffSweep", 	350, 448, true);
-			addSlider("", 						"masterVolume", 		492, 208);
+			addSlider("", 						"masterVolume", 		492, 251);
+			
+			var checkbox:TinyCheckbox = new TinyCheckbox(onCheckboxChange, "PLAY ON CHANGE");
+			checkbox.x = 350;
+			checkbox.y = 466;
+			addChild(checkbox);
 		}
 		
 		/**
@@ -757,11 +768,11 @@
 		 */
 		private function onSliderChange(slider:TinySlider):void
 		{
-			_synth[_propLookup[slider]] = slider.value;
-			
-			_synth.deleteCache();
+			_synth.params[_propLookup[slider]] = slider.value;
 			
 			updateCopyPaste();
+			
+			if (_playOnChange && !_mutePlayOnChange) _synth.play();
 		}
 		
 		/**
@@ -769,10 +780,23 @@
 		 */
 		private function updateSliders():void
 		{
+			_mutePlayOnChange = true;
+			
 			for(var prop:String in _sliderLookup)
 			{
-				_sliderLookup[prop].value = _synth[prop];
+				_sliderLookup[prop].value = _synth.params[prop];
 			}
+			
+			_mutePlayOnChange = false;
+		}
+		
+		/**
+		 * Changes if the sound should play on params change
+		 * @param	checkbox	Checbox clicked
+		 */
+		private function onCheckboxChange(checkbox:TinyCheckbox):void
+		{
+			_playOnChange = checkbox.value;
 		}
 		
 		//--------------------------------------------------------------------------
@@ -814,7 +838,7 @@
 		 */
 		private function updateCopyPaste(e:Event = null):void
 		{
-			_copyPaste.text = _synth.getSettingsString();
+			_copyPaste.text = _synth.params.getSettingsString();
 			
 			_copyPaste.setSelection(0, _copyPaste.text.length);
 			stage.focus = _copyPaste;
@@ -828,12 +852,12 @@
 		{
 			if (e.text.split(",").length == 24) addToHistory();
 			
-			if (!_synth.setSettingsString(e.text)) 
+			if (!_synth.params.setSettingsString(e.text)) 
 			{
 				_copyPaste.setSelection(0, _copyPaste.text.length);
 				stage.focus = _copyPaste;
 				
-				_copyPaste.text = _synth.getSettingsString();
+				_copyPaste.text = _synth.params.getSettingsString();
 			}
 			
 			_copyPaste.setSelection(0, _copyPaste.text.length);
@@ -856,8 +880,8 @@
 		{
 			var lines:Vector.<IGraphicsData> = new Vector.<IGraphicsData>();
 			lines.push(new GraphicsStroke(2, false, LineScaleMode.NORMAL, CapsStyle.NONE, JointStyle.MITER, 3, new GraphicsSolidFill(0)));
-			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,2,2]), 
-										Vector.<Number>([	114,0, 		114,480,
+			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,2,2]), 
+										Vector.<Number>([	114,0, 		114,500,
 															160,66,		460,66,
 															160,138,	460,138,
 															160,246,	460,246,
@@ -866,39 +890,45 @@
 															160,336,	460,336,
 															160,372,	460,372,
 															160, 462,	460, 462,
-															590,212, 618,212, 618,388, 590,388])));
+															160, 480,	460, 480,
+															590,255, 618,255, 618,411, 590,411])));
 			lines.push(new GraphicsStroke(1, false, LineScaleMode.NORMAL, CapsStyle.NONE, JointStyle.MITER, 3, new GraphicsSolidFill(0)));
 			lines.push(new GraphicsPath(Vector.<int>([1,2,1,2,1,2,1,2]), 
-										Vector.<Number>([	160, 65, 	160, 463,
-															460, 65,	460, 463])));
+										Vector.<Number>([	160, 65, 	160, 481,
+															460, 65,	460, 481])));
 			
 			graphics.drawGraphicsData(lines);
 			
 			graphics.lineStyle(2, 0xFF0000, 1, true, LineScaleMode.NORMAL, CapsStyle.SQUARE, JointStyle.MITER);
-			graphics.drawRect(549.5, 207.5, 43, 10);
+			graphics.drawRect(549.5, 250.5, 43, 10);
 			
-			addLabel("CLICK ON LABELS", 484, 68, 0x877569, 500);
-			addLabel("TO RESET SLIDERS", 480, 82, 0x877569, 500);
+			addLabel("CLICK ON LABELS", 484, 118, 0x877569, 500);
+			addLabel("TO RESET SLIDERS", 480, 132, 0x877569, 500);
 			
-			addLabel("COPY/PASTE SETTINGS", 470, 108, 0x877569, 500);
-			addLabel("TO SHARE SOUNDS", 484, 122, 0x877569, 500);
+			addLabel("COPY/PASTE SETTINGS", 470, 158, 0x877569, 500);
+			addLabel("TO SHARE SOUNDS", 484, 172, 0x877569, 500);
 			
-			addLabel("BASED ON SFXR BY", 480, 148, 0x877569, 500);
-			addLabel("TOMAS PETTERSSON", 480, 162, 0x877569, 500);
+			addLabel("BASED ON SFXR BY", 480, 198, 0x877569, 500);
+			addLabel("TOMAS PETTERSSON", 480, 212, 0x877569, 500);
 			
-			addLabel("VOLUME", 516, 192, 0);
+			addLabel("VOLUME", 516, 235, 0);
 			
 			addLabel("GENERATOR", 6, 8, 0x504030);
 			addLabel("MANUAL SETTINGS", 122, 8, 0x504030);
 			
-			var logo:DisplayObject = new Logo();
-			logo.x = 4;
-			logo.y = 439;
-			addChild(logo);
+			var as3sfxrLogo:DisplayObject = new As3sfxrLogo();
+			as3sfxrLogo.x = 476;
+			as3sfxrLogo.y = 62;
+			addChild(as3sfxrLogo);
 			
-			_logoRect = logo.getBounds(stage);
-			_sfxrRect = new Rectangle(480, 115, 100, 30);
-			_volumeRect = new Rectangle(516, 192, 200, 15);
+			var sfbtomLogo:DisplayObject = new SfbtomLogo();
+			sfbtomLogo.x = 4;
+			sfbtomLogo.y = 459;
+			addChild(sfbtomLogo);
+			
+			_logoRect = sfbtomLogo.getBounds(stage);
+			_sfxrRect = new Rectangle(480, 195, 100, 30);
+			_volumeRect = new Rectangle(516, 235, 200, 15);
 			
 			stage.addEventListener(MouseEvent.MOUSE_DOWN, onClick);
 		}
@@ -909,8 +939,8 @@
 		 */
 		private function onClick(e:MouseEvent):void
 		{
-			if (_logoRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.superflashbros.net"));
-			if (_sfxrRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.ludumdare.com/compo/2007/12/13/sfxr-sound-effects-for-all/"));
+			if (_logoRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://twitter.com/SFBTom"));
+			if (_sfxrRect.contains(stage.mouseX, stage.mouseY)) navigateToURL(new URLRequest("http://www.drpetter.se/project_sfxr.html"));
 			if (_volumeRect.contains(stage.mouseX, stage.mouseY)) _sliderLookup["masterVolume"].value = 0.5;
 		}
 		

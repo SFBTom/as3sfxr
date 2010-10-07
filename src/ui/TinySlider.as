@@ -17,7 +17,7 @@
 	/**
 	 * TinySlider
 	 * 
-	 * Copyright 2009 Thomas Vian
+	 * Copyright 2010 Thomas Vian
 	 *
 	 * Licensed under the Apache License, Version 2.0 (the "License");
 	 * you may not use this file except in compliance with the License.
@@ -55,6 +55,8 @@
 		
 		protected var _plusMinus:Boolean;			// If the slider ranges from -1 to 1, instead of 0 to 1
 		protected var _value:Number;				// The current value of the slider
+		
+		protected var _newValue:Number;				// New value being dragged to, used as value when released
 		
 		protected var _onChange:Function;			// Callback function called when the value of the slider changes
 		
@@ -178,7 +180,7 @@
 			}
 			else if (_textRect && _textRect.contains(stage.mouseX, stage.mouseY))
 			{
-				value = 0.0;
+				_newValue = 0.0;
 			}
 		}
 		
@@ -194,13 +196,15 @@
 		}
 		
 		/**
-		 * Stops listening for mouse move
+		 * Stops listening for mouse move, sets value to _newValue
 		 * @param	e	MouseEvent
 		 */
 		protected function onMouseUp(e:MouseEvent):void
 		{
 			stage.removeEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
 			stage.removeEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+			
+			value = _newValue;
 		}
 		
 		//--------------------------------------------------------------------------
@@ -227,11 +231,17 @@
 		}
 		
 		/**
-		 * Updates the value based on mouse position
+		 * Updates the _newValue based on mouse position
 		 */
 		protected function updateValue():void
 		{
-			value = _plusMinus ? (mouseX / 100) * 2 - 1 : mouseX / 100;
+			_newValue = _plusMinus ? (mouseX / 100) * 2 - 1 : mouseX / 100;
+			
+			if (_plusMinus && _newValue < -1.0) 		_newValue = -1.0;
+			else if (!_plusMinus && _newValue < 0.0) 	_newValue = 0.0;
+			else if (_newValue > 1.0) 					_newValue = 1.0;
+			
+			_bar.scaleX = _plusMinus ? (_newValue + 1.0) * 0.5 : _newValue;
 		}
 	}
 }

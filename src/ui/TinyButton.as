@@ -17,7 +17,7 @@
 	/**
 	 * TinyButton
 	 * 
-	 * Copyright 2009 Thomas Vian
+	 * Copyright 2010 Thomas Vian
 	 *
 	 * Licensed under the Apache License, Version 2.0 (the "License");
 	 * you may not use this file except in compliance with the License.
@@ -147,6 +147,10 @@
 			addEventListener(Event.ADDED_TO_STAGE, onAdded);
 		}
 		
+		/**
+		 * Once the button is on the stage, the event listener can be set up and rectangles recorded
+		 * @param	e	Added to stage event
+		 */
 		private function onAdded(e:Event):void
 		{
 			removeEventListener(Event.ADDED_TO_STAGE, onAdded)
