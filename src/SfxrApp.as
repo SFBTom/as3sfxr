@@ -712,7 +712,7 @@
 			addSlider("SUSTAIN TIME",			"sustainTime", 			350, 88);
 			addSlider("SUSTAIN PUNCH",			"sustainPunch", 		350, 106);
 			addSlider("DECAY TIME",				"decayTime", 			350, 124);
-			addSlider("START FREQUENCY",		"startFrequency", 		350, 142);
+			addSlider("START FREQUENCY",		"startFrequency", 		350, 142).defaultValue = 0.5;
 			addSlider("MIN FREQUENCY",			"minFrequency", 		350, 160);
 			addSlider("SLIDE",					"slide", 				350, 178, true);
 			addSlider("DELTA SLIDE",			"deltaSlide", 			350, 196, true);
@@ -725,7 +725,7 @@
 			addSlider("REPEAT SPEED", 			"repeatSpeed", 			350, 322);
 			addSlider("PHASER OFFSET", 			"phaserOffset", 		350, 340, true);
 			addSlider("PHASER SWEEP", 			"phaserSweep", 			350, 358, true);
-			addSlider("LP FILTER CUTOFF", 		"lpFilterCutoff", 		350, 376);
+			addSlider("LP FILTER CUTOFF", 		"lpFilterCutoff", 		350, 376).defaultValue = 1.0;
 			addSlider("LP FILTER CUTOFF SWEEP", "lpFilterCutoffSweep", 	350, 394, true);
 			addSlider("LP FILTER RESONANCE", 	"lpFilterResonance", 	350, 412);
 			addSlider("HP FILTER CUTOFF", 		"hpFilterCutoff", 		350, 430);
