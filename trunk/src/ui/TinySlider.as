@@ -55,6 +55,7 @@
 		
 		protected var _plusMinus:Boolean;			// If the slider ranges from -1 to 1, instead of 0 to 1
 		protected var _value:Number;				// The current value of the slider
+		protected var _defaultValue:Number;			// The default value of the slider
 		
 		protected var _newValue:Number;				// New value being dragged to, used as value when released
 		
@@ -68,6 +69,9 @@
 		
 		/** Changes the text to gray if true, black if false */
 		public function set dimLabel(v:Boolean):void {_text.setTextFormat(v? _formatDim : _formatLight);}
+		
+		/** The default value of the slider */
+		public function set defaultValue(v:Number):void { _defaultValue = v; }
 		
 		/** The value of the slider */
 		public function get value():Number {return _value;}
@@ -104,6 +108,8 @@
 			_onChange = onChange;
 			_plusMinus = plusMinus;
 			_value = 0.0;
+			
+			_defaultValue = 0.0;
 			
 			mouseChildren = false;
 			addEventListener(Event.ADDED_TO_STAGE, onAdded);
@@ -180,7 +186,7 @@
 			}
 			else if (_textRect && _textRect.contains(stage.mouseX, stage.mouseY))
 			{
-				_newValue = 0.0;
+				value = _defaultValue;
 			}
 		}
 		
