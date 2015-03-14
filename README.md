@@ -2,7 +2,7 @@ A port of sfxr from C++ to AS3, using the new sound and file capabilities of Fla
 
 sfxr was originally created by Tomas Pettersson: http://www.drpetter.se/project_sfxr.html
 
-New Features
+## New Features
 * Asynchronous caching
 * Cache-during-first-play
 * Automatic cache clearing on parameter change
@@ -11,7 +11,7 @@ New Features
 
 Features 7 'generator' functions, which produce random but familiar game sounds such as pickup/coin, laser/shoot and explosion.
 
-as3sfxr API
+## as3sfxr API
 You can use the SfxrSynth class in your own code to generate sfx on the fly, without the need to import .wav files. The first time a sound is played, it's synthesized live, but also cached, so that the next time it's played, it's just played out of the cache. Alternatively, pre-cache the sound at a time of your choosing to have it ready to play.
 
 Find a sound you like using the app, copy out the settings and paste them right into your code:
