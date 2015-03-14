@@ -1,5 +1,7 @@
 A port of sfxr from C++ to AS3, using the new sound and file capabilities of Flash Player 10.
 
+[Use the tool to generate sounds here!](http://www.superflashbros.net/as3sfxr/)
+
 sfxr was originally created by Tomas Pettersson: http://www.drpetter.se/project_sfxr.html
 
 ### New Features
