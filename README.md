@@ -3,11 +3,11 @@ A port of sfxr from C++ to AS3, using the new sound and file capabilities of Fla
 sfxr was originally created by Tomas Pettersson: http://www.drpetter.se/project_sfxr.html
 
 New Features
-Asynchronous caching
-Cache-during-first-play
-Automatic cache clearing on parameter change
-Faster synthesis
-Choose from 4 different osciltors - square, saw, sine and noise. Adjust the 22 parameters to find a sound effect you like. Then save it out as a .wav file, or save the parameter settings to load back in later and tweak the sound further.
+* Asynchronous caching
+* Cache-during-first-play
+* Automatic cache clearing on parameter change
+* Faster synthesis
+* Choose from 4 different osciltors - square, saw, sine and noise. Adjust the 22 parameters to find a sound effect you like. * Then save it out as a .wav file, or save the parameter settings to load back in later and tweak the sound further.
 
 Features 7 'generator' functions, which produce random but familiar game sounds such as pickup/coin, laser/shoot and explosion.
 
